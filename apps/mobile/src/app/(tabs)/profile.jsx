@@ -65,14 +65,10 @@ export default function ProfilePage() {
       setLoading(true);
 
       // Load profile data from API
-      const response = await fetch("/api/profile/complete");
-      if (response.ok) {
-        const data = await response.json();
-        setUserData(data.auth_user);
-        setProfileData(data.user);
-      } else {
-        console.error("Failed to load profile data");
-      }
+      const { profileApi } = await import("@/api");
+      const data = await profileApi.getProfile();
+      setUserData(data.auth_user);
+      setProfileData(data.user);
     } catch (error) {
       console.error("Error loading user data:", error);
     } finally {

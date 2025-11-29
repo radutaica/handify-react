@@ -40,3 +40,7 @@ app-example
 .env
 
 .metro-virtual/*
+
+# Metro caches
+caches/.metro-cache/
+caches/metro-file-map-*

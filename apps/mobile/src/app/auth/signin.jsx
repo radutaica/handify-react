@@ -57,17 +57,10 @@ export default function SignInScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/auth/mobile/signin", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const { authApi } = await import("@/api");
+      const data = await authApi.signIn(email, password);
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (data.success) {
         setAuth({
           jwt: data.jwt,
           user: data.user,
@@ -78,7 +71,7 @@ export default function SignInScreen() {
       }
     } catch (error) {
       console.error("Sign in error:", error);
-      Alert.alert("Error", "Network error. Please try again.");
+      Alert.alert("Sign In Failed", error.message || "Network error. Please try again.");
     } finally {
       setLoading(false);
     }

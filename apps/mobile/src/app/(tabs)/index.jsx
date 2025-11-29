@@ -54,11 +54,8 @@ export default function HomePage() {
 
   const loadServiceCategories = async () => {
     try {
-      const response = await fetch("/api/categories");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const categories = await response.json();
+      const { categoriesApi } = await import("@/api");
+      const categories = await categoriesApi.getCategories();
 
       // Transform the categories data to match our component format
       const iconMap = {
@@ -97,11 +94,8 @@ export default function HomePage() {
     try {
       // This would ideally fetch recent providers based on user's booking history
       // For now, we'll get a sample of providers from the services API
-      const response = await fetch("/api/categories?with_services=true");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const categories = await response.json();
+      const { categoriesApi } = await import("@/api");
+      const categories = await categoriesApi.getCategories({ withServices: true });
 
       // Extract some sample providers from the services data
       const mockProviders = [
@@ -143,11 +137,8 @@ export default function HomePage() {
 
   const loadPopularServices = async () => {
     try {
-      const response = await fetch("/api/services?limit=10");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
+      const { servicesApi } = await import("@/api");
+      const data = await servicesApi.getServices({ limit: 10 });
 
       // Transform the services data to match our component format
       const transformedServices = data.services.slice(0, 3).map((service) => ({

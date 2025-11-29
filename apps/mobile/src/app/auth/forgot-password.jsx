@@ -53,24 +53,12 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/auth/mobile/forgot-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(true);
-      } else {
-        Alert.alert("Error", data.error || "Failed to send reset email");
-      }
+      const { authApi } = await import("@/api");
+      await authApi.forgotPassword(email);
+      setSuccess(true);
     } catch (error) {
       console.error("Forgot password error:", error);
-      Alert.alert("Error", "Network error. Please try again.");
+      Alert.alert("Error", error.message || "Network error. Please try again.");
     } finally {
       setLoading(false);
     }

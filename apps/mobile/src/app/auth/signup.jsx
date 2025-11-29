@@ -63,23 +63,16 @@ export default function SignUpScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/auth/mobile/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          name: `${firstName} ${lastName}`,
-          firstName,
-          lastName,
-        }),
+      const { authApi } = await import("@/api");
+      const data = await authApi.signUp({
+        email,
+        password,
+        name: `${firstName} ${lastName}`,
+        firstName,
+        lastName,
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (data.success) {
         setAuth({
           jwt: data.jwt,
           user: data.user,
@@ -92,7 +85,7 @@ export default function SignUpScreen() {
       }
     } catch (error) {
       console.error("Sign up error:", error);
-      Alert.alert("Error", "Network error. Please try again.");
+      Alert.alert("Sign Up Failed", error.message || "Network error. Please try again.");
     } finally {
       setLoading(false);
     }

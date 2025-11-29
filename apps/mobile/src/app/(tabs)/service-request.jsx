@@ -67,11 +67,8 @@ export default function ServiceRequestPage() {
 
   const loadServices = async () => {
     try {
-      const response = await fetch("/api/services");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
+      const { servicesApi } = await import("@/api");
+      const data = await servicesApi.getServices();
       setServices(data.services);
     } catch (error) {
       console.error("Error loading services:", error);
@@ -154,20 +151,8 @@ export default function ServiceRequestPage() {
         customer_notes: formData.customerNotes || null,
       };
 
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create service request");
-      }
-
-      const booking = await response.json();
+      const { bookingsApi } = await import("@/api");
+      const booking = await bookingsApi.createBooking(requestData);
 
       Alert.alert(
         "Success!",
@@ -185,7 +170,7 @@ export default function ServiceRequestPage() {
       );
     } catch (error) {
       console.error("Error creating service request:", error);
-      Alert.alert("Error", error.message || "Failed to create service request");
+      Alert.alert("Error", error.message || error.data?.error || "Failed to create service request");
     } finally {
       setLoading(false);
     }
