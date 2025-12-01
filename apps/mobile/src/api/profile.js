@@ -15,7 +15,7 @@ export const profileApi = {
    * Complete/Update profile
    */
   completeProfile: async (profileData) => {
-    return apiClient.put('/api/profile/complete', profileData);
+    return apiClient.post('/api/v1/user_profiles/complete', profileData);
   },
 
   /**

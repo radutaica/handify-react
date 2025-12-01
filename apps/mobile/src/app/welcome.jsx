@@ -3,17 +3,17 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Image,
-  ScrollView,
-  Dimensions,
+  StyleSheet,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/utils/auth/useAuth";
-import { ArrowRight, Shield, Users, Star, Clock } from "lucide-react-native";
+import { ArrowRight } from "lucide-react-native";
+import { colors } from "@/theme/colors";
+import AppIcon from "@/components/AppIcon";
 
-const { height } = Dimensions.get("window");
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -33,209 +33,134 @@ export default function WelcomeScreen() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#fff",
+          backgroundColor: colors.background.tertiary,
         }}
       >
-        <Text style={{ fontSize: 18, color: "#666" }}>Loading...</Text>
+        <Text style={{ fontSize: 18, color: colors.text.secondary }}>Loading...</Text>
       </View>
     );
   }
 
-  const features = [
-    {
-      icon: <Users size={24} color="#3B82F6" />,
-      title: "Trusted Professionals",
-      description: "Connect with verified local service providers",
-    },
-    {
-      icon: <Shield size={24} color="#3B82F6" />,
-      title: "Secure & Safe",
-      description: "All providers are background checked and insured",
-    },
-    {
-      icon: <Star size={24} color="#3B82F6" />,
-      title: "Quality Service",
-      description: "Read reviews and ratings from real customers",
-    },
-    {
-      icon: <Clock size={24} color="#3B82F6" />,
-      title: "Quick Booking",
-      description: "Get help when you need it, fast and reliable",
-    },
-  ];
-
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={{ paddingHorizontal: 24, paddingTop: 20 }}>
-          <View style={{ alignItems: "center", marginBottom: 40 }}>
-            <View
-              style={{
-                width: 80,
-                height: 80,
-                backgroundColor: "#3B82F6",
-                borderRadius: 20,
-                justifyContent: "center",
-                alignItems: "center",
-                marginBottom: 20,
-              }}
-            >
-              <Text
-                style={{ color: "white", fontSize: 32, fontWeight: "bold" }}
-              >
-                S
-              </Text>
-            </View>
-            <Text
-              style={{
-                fontSize: 32,
-                fontWeight: "bold",
-                color: "#1F2937",
-                textAlign: "center",
-                marginBottom: 8,
-              }}
-            >
-              Welcome to ServiceHub
-            </Text>
-            <Text
-              style={{
-                fontSize: 16,
-                color: "#6B7280",
-                textAlign: "center",
-                lineHeight: 24,
-              }}
-            >
-              Your trusted platform for connecting with local service
-              professionals
-            </Text>
-          </View>
-
-          {/* Features */}
-          <View style={{ marginBottom: 40 }}>
-            {features.map((feature, index) => (
-              <View
-                key={index}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 24,
-                  paddingHorizontal: 16,
-                }}
-              >
-                <View
-                  style={{
-                    width: 48,
-                    height: 48,
-                    backgroundColor: "#EBF4FF",
-                    borderRadius: 12,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    marginRight: 16,
-                  }}
-                >
-                  {feature.icon}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: "600",
-                      color: "#1F2937",
-                      marginBottom: 4,
-                    }}
-                  >
-                    {feature.title}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      color: "#6B7280",
-                      lineHeight: 20,
-                    }}
-                  >
-                    {feature.description}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-
-          {/* Auth Buttons */}
-          <View style={{ gap: 16 }}>
-            <TouchableOpacity
-              onPress={signUp}
-              style={{
-                backgroundColor: "#3B82F6",
-                paddingVertical: 16,
-                paddingHorizontal: 24,
-                borderRadius: 12,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                shadowColor: "#3B82F6",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 6,
-              }}
-            >
-              <Text
-                style={{
-                  color: "white",
-                  fontSize: 16,
-                  fontWeight: "600",
-                  marginRight: 8,
-                }}
-              >
-                Get Started
-              </Text>
-              <ArrowRight size={20} color="white" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={signIn}
-              style={{
-                borderWidth: 2,
-                borderColor: "#3B82F6",
-                paddingVertical: 14,
-                paddingHorizontal: 24,
-                borderRadius: 12,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text
-                style={{
-                  color: "#3B82F6",
-                  fontSize: 16,
-                  fontWeight: "600",
-                }}
-              >
-                I Already Have an Account
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Terms */}
-          <Text
-            style={{
-              fontSize: 12,
-              color: "#9CA3AF",
-              textAlign: "center",
-              marginTop: 32,
-              lineHeight: 18,
-            }}
-          >
-            By continuing, you agree to our Terms of Service and Privacy Policy
-          </Text>
+      <View style={styles.content}>
+        {/* App Icon */}
+        <View style={styles.iconWrapper}>
+          <AppIcon size={100} iconSize={40} />
         </View>
-      </ScrollView>
+
+        {/* App Name */}
+        <Text style={styles.appName}>ServiceHub</Text>
+
+        {/* Tagline */}
+        <Text style={styles.tagline}>
+          Connect with trusted service providers in your area or offer your
+          professional skills
+        </Text>
+
+        {/* Buttons */}
+        <View style={styles.buttonContainer}>
+          {/* Get Started Button */}
+          <TouchableOpacity
+            onPress={signUp}
+            style={styles.getStartedButton}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={colors.primary.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.getStartedGradient}
+            >
+              <Text style={styles.getStartedText}>Get Started</Text>
+              <ArrowRight size={20} color={colors.ui.white} style={{ marginLeft: 8 }} />
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Sign In Button */}
+          <TouchableOpacity
+            onPress={signIn}
+            style={styles.signInButton}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.signInText}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.tertiary,
+  },
+  content: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  iconWrapper: {
+    marginBottom: 32,
+  },
+  appName: {
+    fontSize: 36,
+    fontWeight: "bold",
+    color: colors.text.primary,
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  tagline: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 60,
+    paddingHorizontal: 20,
+  },
+  buttonContainer: {
+    width: "100%",
+    gap: 16,
+    marginTop: "auto",
+  },
+  getStartedButton: {
+    borderRadius: 12,
+    overflow: "hidden",
+    shadowColor: colors.primary.teal,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  getStartedGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  getStartedText: {
+    color: colors.ui.white,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  signInButton: {
+    backgroundColor: colors.ui.white,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  signInText: {
+    color: colors.text.primary,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+});
