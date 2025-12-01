@@ -64,7 +64,9 @@ export default function SignInScreen() {
       const { authApi } = await import("@/api");
       const data = await authApi.signIn(email, password);
 
-      if (data.success) {
+      if (data.success && data.jwt) {
+        // Extract JWT token from Authorization header and store it
+        // The user is now authenticated and can use the token for authenticated requests
         setAuth({
           jwt: data.jwt,
           user: data.user,

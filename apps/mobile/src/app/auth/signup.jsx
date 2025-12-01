@@ -86,20 +86,28 @@ export default function SignUpScreen() {
         lastName,
       });
 
-      if (data.success) {
+      if (data.success && data.jwt) {
+        // Extract JWT token from Authorization header and store it
+        // The user is now authenticated and can use the token for authenticated requests
         setAuth({
           jwt: data.jwt,
           user: data.user,
         });
 
-        // Navigate to onboarding after signup
+        // Navigate to onboarding after successful signup
         router.replace("/onboarding");
       } else {
-        Alert.alert("Sign Up Failed", data.error || "Failed to create account");
+        Alert.alert(
+          "Sign Up Failed", 
+          data.error || "Failed to create account. Please try again."
+        );
       }
     } catch (error) {
       console.error("Sign up error:", error);
-      Alert.alert("Sign Up Failed", error.message || "Network error. Please try again.");
+      Alert.alert(
+        "Sign Up Failed", 
+        error.message || "Network error. Please try again."
+      );
     } finally {
       setLoading(false);
     }

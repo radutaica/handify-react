@@ -24,7 +24,7 @@ export default function WelcomeScreen() {
     if (isReady && isAuthenticated) {
       router.replace("/(tabs)");
     }
-  }, [isReady, isAuthenticated]);
+  }, []);
 
   if (!isReady) {
     return (
