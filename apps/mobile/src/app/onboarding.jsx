@@ -224,8 +224,7 @@ export default function OnboardingScreen() {
 
       await profileApi.completeProfile(profileData);
       // For testing: comment out redirect to stay on onboarding screen
-      // router.replace("/(tabs)");
-      Alert.alert("Success", "Onboarding completed! (Testing mode - staying on page)");
+      router.replace("/(tabs)");
     } catch (error) {
       console.error("Onboarding completion error:", error);
       Alert.alert("Error", error.message || "Failed to complete onboarding");

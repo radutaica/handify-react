@@ -13,9 +13,15 @@ export const profileApi = {
 
   /**
    * Complete/Update profile
+   * Request: { profileData: { photo_url, preferred_language, email_notifications, sms_notifications, push_notifications, user_type, location_address, location_city, location_zip, payment_method, service_categories: [], preferred_time_windows: [] } }
+   * Response: { status: { code: 200, message: 'Profile updated successfully.' }, data: { ...user } }
    */
   completeProfile: async (profileData) => {
-    return apiClient.post('/api/v1/user_profiles/complete', profileData);
+    // Wrap data in profileData key to match Rails backend expectations
+    // Rails expects: params.require(:profileData).permit(...)
+    return apiClient.post('/api/v1/user_profiles/complete', {
+      profileData: profileData
+    });
   },
 
   /**

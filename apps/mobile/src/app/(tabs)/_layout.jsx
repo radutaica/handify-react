@@ -1,12 +1,16 @@
 import React from "react";
-import { Tabs } from "expo-router";
+import { Tabs, usePathname } from "expo-router";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
 import {
   Home,
   Search,
-  Calendar,
+  Clock,
   MessageCircle,
   User,
 } from "lucide-react-native";
+import { colors } from "@/theme/colors";
+
+const TAB_BAR_MARGIN = 24;
 
 export default function TabLayout() {
   return (
@@ -15,52 +19,94 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: "#fff",
-          borderTopWidth: 1,
-          borderColor: "#E5E7EB",
+          borderTopWidth: 0,
           paddingTop: 4,
+          paddingBottom: 12,
+          paddingHorizontal: 2,
+          height: 70,
+          position: "absolute",
+          bottom: 20,
+          marginHorizontal: TAB_BAR_MARGIN,
+          alignSelf: "center",
+          borderRadius: 20,
+          shadowColor: "#000",
+          shadowOffset: {
+            width: 0,
+            height: 2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 5,
         },
-        tabBarActiveTintColor: "#000000",
-        tabBarInactiveTintColor: "#6B6B6B",
+        tabBarActiveTintColor: colors.primary.teal,
+        tabBarInactiveTintColor: colors.gray[500],
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
+          fontWeight: "400",
+          marginTop: 2,
+          marginBottom: 0,
+          marginHorizontal: 0,
         },
+        tabBarIconStyle: {
+          marginTop: 0,
+          marginBottom: 2,
+          marginHorizontal: 0,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 0,
+        },
+        tabBarButton: (props) => (
+          <CustomTabBarButton {...props} />
+        ),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color, size }) => <Home color={color} size={24} />,
+          title: "Acasă",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Home color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
+          ),
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
-          title: "Search",
-          tabBarIcon: ({ color, size }) => <Search color={color} size={24} />,
+          title: "Caută",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Search color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
+          ),
         }}
       />
       <Tabs.Screen
         name="bookings"
         options={{
-          title: "Bookings",
-          tabBarIcon: ({ color, size }) => <Calendar color={color} size={24} />,
+          title: "Istoric",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Clock color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
+          ),
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
-          title: "Messages",
-          tabBarIcon: ({ color, size }) => (
-            <MessageCircle color={color} size={24} />
+          title: "Mesaje",
+          tabBarIcon: ({ color, size, focused }) => (
+            <MessageCircle
+              color={color}
+              size={24}
+              strokeWidth={focused ? 2.5 : 2}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
-          tabBarIcon: ({ color, size }) => <User color={color} size={24} />,
+          title: "Profil",
+          tabBarIcon: ({ color, size, focused }) => (
+            <User color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -84,3 +130,51 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+function CustomTabBarButton({ children, onPress, accessibilityState, style, href }) {
+  const pathname = usePathname();
+  const isFocused = accessibilityState?.selected || (href && pathname === href);
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[
+        styles.tabButton,
+        style,
+      ]}
+      activeOpacity={0.7}
+    >
+      <View
+        style={[
+          styles.tabContent,
+          isFocused && styles.tabContentFocused,
+        ]}
+      >
+        {children}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  tabButton: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+  tabContent: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    paddingTop: 6,
+    paddingBottom: 10,
+    borderRadius: 12,
+    minWidth: 60,
+    width: "100%",
+    backgroundColor: "transparent",
+  },
+  tabContentFocused: {
+    backgroundColor: "#E0F2F1", // Light teal/mint green background
+  },
+});
