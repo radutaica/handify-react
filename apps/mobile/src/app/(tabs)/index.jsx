@@ -2,42 +2,48 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   ScrollView,
-  useColorScheme,
+  TouchableOpacity,
+  StyleSheet,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 import {
-  Search,
-  Wrench,
   Car,
-  Scissors,
-  Home,
+  Wrench,
   Zap,
-  PaintBucket,
-  Star,
-  MapPin,
-  Clock,
+  Scissors,
+  Sparkles,
+  Laptop,
+  Home as HomeIcon,
+  Calendar,
+  ArrowRight,
+  Phone,
 } from "lucide-react-native";
-import { Image } from "expo-image";
 import {
   useFonts,
   Inter_600SemiBold,
   Inter_400Regular,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
+import { colors } from "@/theme/colors";
+import AppIcon from "@/components/AppIcon";
+import SearchBar from "@/components/home/SearchBar";
+import CategoryCard from "@/components/home/CategoryCard";
+import ProfessionalCard from "@/components/home/ProfessionalCard";
+import ReviewCard from "@/components/home/ReviewCard";
+import QuickActionButton from "@/components/home/QuickActionButton";
+import DiscountOfferCard from "@/components/home/DiscountOfferCard";
+import SectionHeader from "@/components/home/SectionHeader";
 
 export default function HomePage() {
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
-  const [recentProviders, setRecentProviders] = useState([]);
-  const [popularServices, setPopularServices] = useState([]);
-  const [serviceCategories, setServiceCategories] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [recommendedProviders, setRecommendedProviders] = useState([]);
+  const [popularProfessionals, setPopularProfessionals] = useState([]);
+  const [reviews, setReviews] = useState([]);
 
   const [fontsLoaded] = useFonts({
     Inter_600SemiBold,
@@ -46,141 +52,134 @@ export default function HomePage() {
   });
 
   useEffect(() => {
-    // Load data
-    loadServiceCategories();
-    loadRecentProviders();
-    loadPopularServices();
+    loadCategories();
+    loadRecommendedProviders();
+    loadPopularProfessionals();
+    loadReviews();
   }, []);
 
-  const loadServiceCategories = async () => {
+  const loadCategories = async () => {
     try {
       const { categoriesApi } = await import("@/api");
-      const categories = await categoriesApi.getCategories();
-
-      // Transform the categories data to match our component format
+      const data = await categoriesApi.getCategories();
+      
       const iconMap = {
-        Wrench: Wrench,
         Car: Car,
-        Scissors: Scissors,
-        Home: Home,
+        Wrench: Wrench,
         Zap: Zap,
-        PaintBucket: PaintBucket,
+        Scissors: Scissors,
+        Home: HomeIcon,
+        Laptop: Laptop,
+        Sparkles: Sparkles,
       };
 
-      const transformedCategories = categories.map((category) => ({
+      const transformedCategories = data.map((category) => ({
         icon: iconMap[category.iconName] || Wrench,
         name: category.name,
-        color: category.color || "#3B82F6",
+        color: category.color || colors.primary.teal,
         id: category.id,
       }));
 
-      setServiceCategories(transformedCategories);
+      setCategories(transformedCategories);
     } catch (error) {
-      console.error("Error loading service categories:", error);
-      // Fallback to hardcoded categories on error
-      const fallbackCategories = [
-        { icon: Wrench, name: "Plumbing", color: "#3B82F6" },
-        { icon: Car, name: "Car Repair", color: "#EF4444" },
-        { icon: Scissors, name: "Hair Salon", color: "#8B5CF6" },
-        { icon: Home, name: "Cleaning", color: "#10B981" },
-        { icon: Zap, name: "Electrical", color: "#F59E0B" },
-        { icon: PaintBucket, name: "Painting", color: "#EC4899" },
-      ];
-      setServiceCategories(fallbackCategories);
+      console.error("Error loading categories:", error);
+      // Fallback categories matching the screenshot
+      setCategories([
+        { icon: Car, name: "Auto", color: colors.primary.teal, id: "1" },
+        { icon: Wrench, name: "Electrocasnice", color: colors.accent.amber, id: "2" },
+        { icon: Zap, name: "Instalator", color: colors.accent.purple, id: "3" },
+        { icon: Zap, name: "Electrician", color: colors.primary.teal, id: "4" },
+        { icon: Scissors, name: "Beauty & Hairstyle", color: colors.accent.amber, id: "5" },
+        { icon: Sparkles, name: "Curăţenie", color: colors.accent.purple, id: "6" },
+        { icon: Laptop, name: "IT & Device Repair", color: colors.primary.teal, id: "7" },
+        { icon: HomeIcon, name: "Renovări", color: colors.accent.amber, id: "8" },
+      ]);
     }
   };
 
-  const loadRecentProviders = async () => {
-    try {
-      // This would ideally fetch recent providers based on user's booking history
-      // For now, we'll get a sample of providers from the services API
-      const { categoriesApi } = await import("@/api");
-      const categories = await categoriesApi.getCategories({ withServices: true });
-
-      // Extract some sample providers from the services data
-      const mockProviders = [
-        {
-          id: "1",
-          name: "Mike's Plumbing",
-          category: "Plumbing",
-          rating: 4.8,
-          image: "https://via.placeholder.com/60",
-          distance: "0.5 miles",
-          responseTime: "< 1 hour",
-        },
-        {
-          id: "2",
-          name: "Elite Auto Repair",
-          category: "Car Repair",
-          rating: 4.9,
-          image: "https://via.placeholder.com/60",
-          distance: "1.2 miles",
-          responseTime: "< 30 mins",
-        },
-        {
-          id: "3",
-          name: "Bella Hair Studio",
-          category: "Hair Salon",
-          rating: 4.7,
-          image: "https://via.placeholder.com/60",
-          distance: "0.8 miles",
-          responseTime: "< 2 hours",
-        },
-      ];
-      setRecentProviders(mockProviders);
-    } catch (error) {
-      console.error("Error loading recent providers:", error);
-      // Fallback to mock data on error
-      setRecentProviders([]);
-    }
+  const loadRecommendedProviders = async () => {
+    // Mock data matching the screenshot
+    setRecommendedProviders([
+      {
+        id: "1",
+        name: "Ion M.",
+        profession: "Instalaţii sanitare",
+        rating: 4.9,
+        distance: "1.2 km",
+        avatarColor: colors.primary.teal,
+        isRecommended: true,
+      },
+      {
+        id: "2",
+        name: "Andrei P.",
+        profession: "Reparaţii",
+        rating: 4.8,
+        distance: "2.5 km",
+        avatarColor: colors.accent.amber,
+        isRecommended: false,
+      },
+    ]);
   };
 
-  const loadPopularServices = async () => {
-    try {
-      const { servicesApi } = await import("@/api");
-      const data = await servicesApi.getServices({ limit: 10 });
+  const loadPopularProfessionals = async () => {
+    // Mock data matching the screenshot
+    setPopularProfessionals([
+      {
+        id: "3",
+        name: "Alexandru D.",
+        profession: "Electrician",
+        rating: 4.9,
+        reviewCount: 127,
+        distance: "1.5 km",
+        price: "de la 80 lei",
+        avatarColor: colors.primary.teal,
+        isOnline: true,
+      },
+      {
+        id: "4",
+        name: "Elena M.",
+        profession: "Coafor",
+        rating: 5,
+        reviewCount: 89,
+        distance: "0.9 km",
+        price: "de la 50 lei",
+        avatarColor: colors.accent.purple,
+        isOnline: true,
+      },
+      {
+        id: "5",
+        name: "Mihai R.",
+        profession: "Instalator",
+        rating: 4.8,
+        reviewCount: 156,
+        distance: "2.1 km",
+        price: "de la 100 lei",
+        avatarColor: colors.accent.amber,
+        isOnline: true,
+      },
+    ]);
+  };
 
-      // Transform the services data to match our component format
-      const transformedServices = data.services.slice(0, 3).map((service) => ({
-        id: service.id,
-        name: service.name,
-        category: service.category.name,
-        requests: Math.floor(Math.random() * 100) + 20, // Mock requests count
-        avgPrice:
-          service.basePriceMin > 0
-            ? `$${Math.round((service.basePriceMin + service.basePriceMax) / 2)}`
-            : "Contact for quote",
-      }));
-
-      setPopularServices(transformedServices);
-    } catch (error) {
-      console.error("Error loading popular services:", error);
-      // Fallback to mock data on error
-      const mockServices = [
-        {
-          id: "1",
-          name: "Emergency Plumbing",
-          category: "Plumbing",
-          requests: 45,
-          avgPrice: "$150",
-        },
-        {
-          id: "2",
-          name: "Oil Change",
-          category: "Car Repair",
-          requests: 67,
-          avgPrice: "$50",
-        },
-        {
-          id: "3",
-          name: "Haircut & Style",
-          category: "Hair Salon",
-          requests: 89,
-          avgPrice: "$65",
-        },
-      ];
-      setPopularServices(mockServices);
-    }
+  const loadReviews = async () => {
+    // Mock data matching the screenshot
+    setReviews([
+      {
+        id: "1",
+        review: "Profesionist, punctual şi preţuri corecte. Recomand!",
+        authorName: "Ana P.",
+        service: "Instalaţii",
+        rating: 5,
+        avatarColor: colors.primary.teal,
+      },
+      {
+        id: "2",
+        review: "A rezolvat problema rapid și eficient. Foarte mulţumit!",
+        authorName: "George M.",
+        service: "Electrician",
+        rating: 5,
+        avatarColor: colors.accent.purple,
+      },
+    ]);
   };
 
   const handleSearch = () => {
@@ -201,8 +200,21 @@ export default function HomePage() {
     router.push(`/(tabs)/provider/${provider.id}`);
   };
 
-  const handleServiceRequest = () => {
-    router.push("/(tabs)/service-request");
+  const handleQuickAction = (action) => {
+    switch (action) {
+      case "quick-booking":
+        router.push("/(tabs)/service-request");
+        break;
+      case "request-offer":
+        router.push("/(tabs)/service-request");
+        break;
+      case "urgent-help":
+        // TODO: Implement urgent help
+        console.log("Urgent help");
+        break;
+      default:
+        break;
+    }
   };
 
   if (!fontsLoaded) {
@@ -210,341 +222,242 @@ export default function HomePage() {
   }
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: isDark ? "#121212" : "#FFFFFF",
-        paddingTop: insets.top,
-      }}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
-
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-          borderBottomWidth: 1,
-          borderBottomColor: isDark ? "#2D2D2D" : "#E5E7EB",
-        }}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar style="dark" />
+      
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + 100 },
+        ]}
+        showsVerticalScrollIndicator={false}
       >
-        <Text
-          style={{
-            fontFamily: "Inter_700Bold",
-            fontSize: 28,
-            color: isDark ? "#FFFFFF" : "#000000",
-            marginBottom: 16,
-          }}
-        >
-          Find Local Services
-        </Text>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <AppIcon size={32} iconSize={18} borderRadius={8} />
+            <Text style={styles.logoText}>ServiceHub</Text>
+          </View>
+        </View>
 
-        {/* Search Bar */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
-            borderRadius: 12,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            marginBottom: 16,
-          }}
-        >
-          <Search size={20} color={isDark ? "#8F8F8F" : "#9CA3AF"} />
-          <TextInput
-            style={{
-              flex: 1,
-              marginLeft: 12,
-              fontFamily: "Inter_400Regular",
-              fontSize: 16,
-              color: isDark ? "#FFFFFF" : "#000000",
-            }}
-            placeholder="What service do you need?"
-            placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
+        {/* Search Section */}
+        <View style={styles.searchSection}>
+          <Text style={styles.searchTitle}>Ce serviciu cauţi?</Text>
+          <SearchBar
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearch}
           />
+          
+          {/* Quick Action Buttons */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickActionButtons}
+          >
+            <TouchableOpacity
+              style={[styles.quickActionBtn, { backgroundColor: "#D1FAE5" }]}
+              onPress={() => handleCategoryPress({ name: "Reparaţii auto" })}
+            >
+              <Text style={[styles.quickActionText, { color: colors.text.primary }]}>
+                Reparaţii auto
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.quickActionBtn, { backgroundColor: "#FED7AA" }]}
+              onPress={() => handleCategoryPress({ name: "Instalator urgent" })}
+            >
+              <Text style={[styles.quickActionText, { color: colors.text.primary }]}>
+                Instalator urgent
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.quickActionBtn, { backgroundColor: "#E9D5FF" }]}
+              onPress={() => handleCategoryPress({ name: "Frizerie / Hairstyle" })}
+            >
+              <Text style={[styles.quickActionText, { color: colors.text.primary }]}>
+                Frizerie / Hairstyle
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
 
-        {/* Quick Service Request Button */}
-        <TouchableOpacity
-          onPress={handleServiceRequest}
-          style={{
-            backgroundColor: "#000000",
-            borderRadius: 12,
-            paddingVertical: 16,
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: "Inter_600SemiBold",
-              fontSize: 16,
-              color: "#FFFFFF",
-            }}
-          >
-            Post a Service Request
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{
-          paddingBottom: insets.bottom + 20,
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Service Categories */}
-        <View style={{ paddingHorizontal: 16, paddingVertical: 20 }}>
-          <Text
-            style={{
-              fontFamily: "Inter_600SemiBold",
-              fontSize: 18,
-              color: isDark ? "#FFFFFF" : "#000000",
-              marginBottom: 16,
-            }}
-          >
-            Service Categories
-          </Text>
-
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              justifyContent: "space-between",
-            }}
-          >
-            {serviceCategories.map((category, index) => (
-              <TouchableOpacity
-                key={index}
+        {/* Categories Section */}
+        <View style={styles.section}>
+          <SectionHeader
+            title="Categorii"
+            showViewAll
+            onViewAllPress={() => router.push("/(tabs)/search")}
+          />
+          <View style={styles.categoriesGrid}>
+            {categories.slice(0, 8).map((category) => (
+              <CategoryCard
+                key={category.id}
+                icon={category.icon}
+                name={category.name}
+                color={category.color}
                 onPress={() => handleCategoryPress(category)}
-                style={{
-                  width: "48%",
-                  backgroundColor: isDark ? "#1E1E1E" : "#F8F9FA",
-                  borderRadius: 12,
-                  padding: 16,
-                  alignItems: "center",
-                  marginBottom: 12,
-                }}
-              >
-                <View
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 24,
-                    backgroundColor: category.color,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: 12,
-                  }}
-                >
-                  <category.icon size={24} color="#FFFFFF" />
-                </View>
-                <Text
-                  style={{
-                    fontFamily: "Inter_600SemiBold",
-                    fontSize: 14,
-                    color: isDark ? "#FFFFFF" : "#000000",
-                    textAlign: "center",
-                  }}
-                >
-                  {category.name}
-                </Text>
-              </TouchableOpacity>
+              />
             ))}
           </View>
         </View>
 
-        {/* Recent Providers */}
-        {recentProviders.length > 0 && (
-          <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
-            <Text
-              style={{
-                fontFamily: "Inter_600SemiBold",
-                fontSize: 18,
-                color: isDark ? "#FFFFFF" : "#000000",
-                marginBottom: 16,
-              }}
-            >
-              Recent Providers
-            </Text>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {recentProviders.map((provider) => (
-                <TouchableOpacity
-                  key={provider.id}
-                  onPress={() => handleProviderPress(provider)}
-                  style={{
-                    width: 200,
-                    backgroundColor: isDark ? "#1E1E1E" : "#F8F9FA",
-                    borderRadius: 12,
-                    padding: 16,
-                    marginRight: 12,
-                  }}
-                >
-                  <Image
-                    source={{ uri: provider.image }}
-                    style={{
-                      width: 50,
-                      height: 50,
-                      borderRadius: 25,
-                      marginBottom: 12,
-                    }}
-                    contentFit="cover"
-                    transition={100}
-                  />
-                  <Text
-                    style={{
-                      fontFamily: "Inter_600SemiBold",
-                      fontSize: 16,
-                      color: isDark ? "#FFFFFF" : "#000000",
-                      marginBottom: 4,
-                    }}
-                  >
-                    {provider.name}
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: "Inter_400Regular",
-                      fontSize: 14,
-                      color: isDark ? "#B3B3B3" : "#6B7280",
-                      marginBottom: 8,
-                    }}
-                  >
-                    {provider.category}
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginBottom: 4,
-                    }}
-                  >
-                    <Star size={14} color="#F59E0B" />
-                    <Text
-                      style={{
-                        fontFamily: "Inter_400Regular",
-                        fontSize: 12,
-                        color: isDark ? "#B3B3B3" : "#6B7280",
-                        marginLeft: 4,
-                      }}
-                    >
-                      {provider.rating}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginBottom: 4,
-                    }}
-                  >
-                    <MapPin size={12} color={isDark ? "#8F8F8F" : "#9CA3AF"} />
-                    <Text
-                      style={{
-                        fontFamily: "Inter_400Regular",
-                        fontSize: 12,
-                        color: isDark ? "#8F8F8F" : "#9CA3AF",
-                        marginLeft: 4,
-                      }}
-                    >
-                      {provider.distance}
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Clock size={12} color={isDark ? "#8F8F8F" : "#9CA3AF"} />
-                    <Text
-                      style={{
-                        fontFamily: "Inter_400Regular",
-                        fontSize: 12,
-                        color: isDark ? "#8F8F8F" : "#9CA3AF",
-                        marginLeft: 4,
-                      }}
-                    >
-                      {provider.responseTime}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Popular Services */}
-        {popularServices.length > 0 && (
-          <View style={{ paddingHorizontal: 16 }}>
-            <Text
-              style={{
-                fontFamily: "Inter_600SemiBold",
-                fontSize: 18,
-                color: isDark ? "#FFFFFF" : "#000000",
-                marginBottom: 16,
-              }}
-            >
-              Popular Services
-            </Text>
-
-            {popularServices.map((service) => (
-              <TouchableOpacity
-                key={service.id}
-                style={{
-                  backgroundColor: isDark ? "#1E1E1E" : "#F8F9FA",
-                  borderRadius: 12,
-                  padding: 16,
-                  marginBottom: 12,
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontFamily: "Inter_600SemiBold",
-                      fontSize: 16,
-                      color: isDark ? "#FFFFFF" : "#000000",
-                      marginBottom: 4,
-                    }}
-                  >
-                    {service.name}
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: "Inter_400Regular",
-                      fontSize: 14,
-                      color: isDark ? "#B3B3B3" : "#6B7280",
-                      marginBottom: 4,
-                    }}
-                  >
-                    {service.category}
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: "Inter_400Regular",
-                      fontSize: 12,
-                      color: isDark ? "#8F8F8F" : "#9CA3AF",
-                    }}
-                  >
-                    {service.requests} recent requests
-                  </Text>
-                </View>
-                <Text
-                  style={{
-                    fontFamily: "Inter_600SemiBold",
-                    fontSize: 16,
-                    color: "#16A34A",
-                  }}
-                >
-                  {service.avgPrice}
-                </Text>
-              </TouchableOpacity>
+        {/* Recommended Section */}
+        <View style={styles.section}>
+          <SectionHeader title="Recomandate pentru tine" />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScroll}
+          >
+            {recommendedProviders.map((provider) => (
+              <ProfessionalCard
+                key={provider.id}
+                {...provider}
+                onPress={() => handleProviderPress(provider)}
+              />
             ))}
+          </ScrollView>
+        </View>
+
+        {/* Popular Professionals Section */}
+        <View style={styles.section}>
+          <SectionHeader
+            title="Profesioniști populari"
+            showViewAll
+            viewAllText="Mai mulți"
+            onViewAllPress={() => router.push("/(tabs)/search")}
+          />
+          {popularProfessionals.map((professional) => (
+            <ProfessionalCard
+              key={professional.id}
+              {...professional}
+              variant="list"
+              onPress={() => handleProviderPress(professional)}
+            />
+          ))}
+        </View>
+
+        {/* Discount Offer */}
+        <View style={styles.section}>
+          <DiscountOfferCard
+            title="20% reducere la prima comandă"
+            subtitle="Pentru servicii de curăţenie şi renovări"
+            onPress={() => console.log("Discount offer pressed")}
+          />
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <SectionHeader title="Acțiuni rapide" />
+          <View style={styles.quickActionsRow}>
+            <QuickActionButton
+              icon={Calendar}
+              label="Rezervare rapidă"
+              variant="primary"
+              onPress={() => handleQuickAction("quick-booking")}
+            />
+            <QuickActionButton
+              icon={ArrowRight}
+              label="Solicită ofertă"
+              variant="secondary"
+              onPress={() => handleQuickAction("request-offer")}
+            />
+            <QuickActionButton
+              icon={Phone}
+              label="Ajutor urgent"
+              variant="outline"
+              iconColor={colors.accent.amber}
+              onPress={() => handleQuickAction("urgent-help")}
+            />
           </View>
-        )}
+        </View>
+
+        {/* Customer Reviews */}
+        <View style={styles.section}>
+          <SectionHeader title="Ce spun clienții" />
+          {reviews.map((review) => (
+            <ReviewCard key={review.id} {...review} />
+          ))}
+        </View>
       </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.secondary,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+  },
+  logoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  logoText: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+    color: colors.text.primary,
+    marginLeft: 8,
+  },
+  loginButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  loginText: {
+    fontSize: 16,
+    fontFamily: "Inter_400Regular",
+    color: colors.gray[500],
+  },
+  searchSection: {
+    marginBottom: 24,
+  },
+  searchTitle: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    color: colors.text.primary,
+    marginBottom: 16,
+  },
+  quickActionButtons: {
+    flexDirection: "row",
+    marginTop: 12,
+    paddingRight: 16,
+    gap: 8,
+  },
+  quickActionBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  quickActionText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+  },
+  section: {
+    marginBottom: 32,
+  },
+  categoriesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  horizontalScroll: {
+    paddingRight: 16,
+  },
+  quickActionsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+});
