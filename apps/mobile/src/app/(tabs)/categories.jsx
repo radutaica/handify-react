@@ -111,7 +111,7 @@ export default function CategoriesPage() {
 
   const handleCategoryPress = (category) => {
     router.push({
-      pathname: "/(tabs)/search",
+      pathname: "/(tabs)/providers",
       params: { category: category.name },
     });
   };

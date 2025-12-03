@@ -133,6 +133,12 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="providers"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
