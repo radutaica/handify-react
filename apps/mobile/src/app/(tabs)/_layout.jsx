@@ -13,6 +13,11 @@ import { colors } from "@/theme/colors";
 const TAB_BAR_MARGIN = 24;
 
 export default function TabLayout() {
+  const pathname = usePathname();
+  const isProviderScreen = pathname?.includes("/provider/");
+  const isPortfolioScreen = pathname?.includes("/portfolio");
+  const shouldHideTabBar = isProviderScreen || isPortfolioScreen;
+  
   return (
     <Tabs
       screenOptions={{
@@ -37,6 +42,7 @@ export default function TabLayout() {
           shadowOpacity: 0.1,
           shadowRadius: 8,
           elevation: 5,
+          display: shouldHideTabBar ? "none" : "flex",
         },
         tabBarActiveTintColor: colors.primary.teal,
         tabBarInactiveTintColor: colors.gray[500],
@@ -111,6 +117,12 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="provider/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="provider/[id]/portfolio"
         options={{
           href: null,
         }}
