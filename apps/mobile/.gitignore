@@ -42,5 +42,8 @@ app-example
 .metro-virtual/*
 
 # Metro caches
+caches/
 caches/.metro-cache/
 caches/metro-file-map-*
+*.cache
+.cache/

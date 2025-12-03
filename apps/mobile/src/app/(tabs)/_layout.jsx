@@ -63,7 +63,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Acasă",
+          title: "Acasa",
           tabBarIcon: ({ color, size, focused }) => (
             <Home color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
           ),
@@ -72,7 +72,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: "Caută",
+          title: "Cauta",
           tabBarIcon: ({ color, size, focused }) => (
             <Search color={color} size={24} strokeWidth={focused ? 2.5 : 2} />
           ),
@@ -123,6 +123,12 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="booking/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="categories"
         options={{
           href: null,
         }}

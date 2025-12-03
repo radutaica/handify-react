@@ -7,7 +7,7 @@ export default function SearchBar({
   value, 
   onChangeText, 
   onSubmitEditing, 
-  placeholder = "Caută un serviciu...",
+  placeholder = "Cauta un serviciu...",
 }) {
   return (
     <View style={styles.container}>

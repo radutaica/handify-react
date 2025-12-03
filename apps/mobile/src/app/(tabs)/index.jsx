@@ -90,9 +90,9 @@ export default function HomePage() {
         { icon: Zap, name: "Instalator", color: colors.accent.purple, id: "3" },
         { icon: Zap, name: "Electrician", color: colors.primary.teal, id: "4" },
         { icon: Scissors, name: "Beauty & Hairstyle", color: colors.accent.amber, id: "5" },
-        { icon: Sparkles, name: "Curăţenie", color: colors.accent.purple, id: "6" },
+        { icon: Sparkles, name: "Curatenie", color: colors.accent.purple, id: "6" },
         { icon: Laptop, name: "IT & Device Repair", color: colors.primary.teal, id: "7" },
-        { icon: HomeIcon, name: "Renovări", color: colors.accent.amber, id: "8" },
+        { icon: HomeIcon, name: "Renovari", color: colors.accent.amber, id: "8" },
       ]);
     }
   };
@@ -167,13 +167,13 @@ export default function HomePage() {
         id: "1",
         review: "Profesionist, punctual şi preţuri corecte. Recomand!",
         authorName: "Ana P.",
-        service: "Instalaţii",
+        service: "Instalatii",
         rating: 5,
         avatarColor: colors.primary.teal,
       },
       {
         id: "2",
-        review: "A rezolvat problema rapid și eficient. Foarte mulţumit!",
+        review: "A rezolvat problema rapid si eficient. Foarte multumit!",
         authorName: "George M.",
         service: "Electrician",
         rating: 5,
@@ -243,7 +243,7 @@ export default function HomePage() {
 
         {/* Search Section */}
         <View style={styles.searchSection}>
-          <Text style={styles.searchTitle}>Ce serviciu cauţi?</Text>
+          <Text style={styles.searchTitle}>Ce serviciu cauti?</Text>
           <SearchBar
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -258,10 +258,10 @@ export default function HomePage() {
           >
             <TouchableOpacity
               style={[styles.quickActionBtn, { backgroundColor: "#D1FAE5" }]}
-              onPress={() => handleCategoryPress({ name: "Reparaţii auto" })}
+              onPress={() => handleCategoryPress({ name: "Reparatii auto" })}
             >
               <Text style={[styles.quickActionText, { color: colors.text.primary }]}>
-                Reparaţii auto
+                Reparatii auto
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -288,7 +288,7 @@ export default function HomePage() {
           <SectionHeader
             title="Categorii"
             showViewAll
-            onViewAllPress={() => router.push("/(tabs)/search")}
+            onViewAllPress={() => router.push("/(tabs)/categories")}
           />
           <View style={styles.categoriesGrid}>
             {categories.slice(0, 8).map((category) => (
@@ -324,9 +324,9 @@ export default function HomePage() {
         {/* Popular Professionals Section */}
         <View style={styles.section}>
           <SectionHeader
-            title="Profesioniști populari"
+            title="Profesionisti populari"
             showViewAll
-            viewAllText="Mai mulți"
+            viewAllText="Mai multi"
             onViewAllPress={() => router.push("/(tabs)/search")}
           />
           {popularProfessionals.map((professional) => (
@@ -342,25 +342,25 @@ export default function HomePage() {
         {/* Discount Offer */}
         <View style={styles.section}>
           <DiscountOfferCard
-            title="20% reducere la prima comandă"
-            subtitle="Pentru servicii de curăţenie şi renovări"
+            title="20% reducere la prima comanda"
+            subtitle="Pentru servicii de curatenie si renovari"
             onPress={() => console.log("Discount offer pressed")}
           />
         </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <SectionHeader title="Acțiuni rapide" />
+          <SectionHeader title="Actiuni rapide" />
           <View style={styles.quickActionsRow}>
             <QuickActionButton
               icon={Calendar}
-              label="Rezervare rapidă"
+              label="Rezervare rapida"
               variant="primary"
               onPress={() => handleQuickAction("quick-booking")}
             />
             <QuickActionButton
               icon={ArrowRight}
-              label="Solicită ofertă"
+              label="Solicita oferta"
               variant="secondary"
               onPress={() => handleQuickAction("request-offer")}
             />
@@ -376,7 +376,7 @@ export default function HomePage() {
 
         {/* Customer Reviews */}
         <View style={styles.section}>
-          <SectionHeader title="Ce spun clienții" />
+          <SectionHeader title="Ce spun clientii" />
           {reviews.map((review) => (
             <ReviewCard key={review.id} {...review} />
           ))}
