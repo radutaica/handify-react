@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
-import { useAuth } from "@/utils/auth/useAuth"; // Add auth import
+import { useCurrentUser } from "@/utils/auth";
 import {
   User,
   Settings,
@@ -24,6 +24,8 @@ import {
   Edit3,
   LogOut,
   ChevronRight,
+  Briefcase,
+  ClipboardList,
 } from "lucide-react-native";
 import { Image } from "expo-image";
 import {
@@ -37,11 +39,21 @@ export default function ProfilePage() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { isAuthenticated, isReady, signOut: authSignOut, signIn } = useAuth(); // Add auth hooks
-  const [userData, setUserData] = useState(null);
-  const [profileData, setProfileData] = useState(null);
+  const {
+    user,
+    isTasker,
+    taskerProfile,
+    hasTaskerProfile,
+    isAuthenticated,
+    isReady,
+    signOut,
+    signIn,
+    refetchUser,
+    loading,
+    isRefetching,
+  } = useCurrentUser();
+  console.log("taskerProfile", taskerProfile);
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   const [fontsLoaded] = useFonts({
     Inter_600SemiBold,
@@ -50,31 +62,10 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (isReady) {
-      if (isAuthenticated) {
-        loadUserData();
-        loadUserStats();
-      } else {
-        setLoading(false);
-      }
+    if (isReady && isAuthenticated) {
+      loadUserStats();
     }
   }, [isReady, isAuthenticated]);
-
-  const loadUserData = async () => {
-    try {
-      setLoading(true);
-
-      // Load profile data from API
-      const { profileApi } = await import("@/api");
-      const data = await profileApi.getProfile();
-      setUserData(data.auth_user);
-      setProfileData(data.user);
-    } catch (error) {
-      console.error("Error loading user data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadUserStats = async () => {
     // Mock stats data - will be replaced with actual API call
@@ -86,14 +77,6 @@ export default function ProfilePage() {
       favoriteProviders: 3,
     };
     setStats(mockStats);
-  };
-
-  const formatJoinDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-    });
   };
 
   const handleEditProfile = () => {
@@ -128,7 +111,7 @@ export default function ProfilePage() {
         style: "destructive",
         onPress: async () => {
           try {
-            await authSignOut();
+            await signOut();
             router.replace("/welcome");
           } catch (error) {
             console.error("Logout error:", error);
@@ -341,7 +324,7 @@ export default function ProfilePage() {
           showsVerticalScrollIndicator={false}
         >
           {/* User Profile Section */}
-          {userData && (
+          {user && (
             <View
               style={{
                 backgroundColor: isDark ? "#1E1E1E" : "#F8F9FA",
@@ -358,29 +341,41 @@ export default function ProfilePage() {
                   marginBottom: 16,
                 }}
               >
-                <View
-                  style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: 40,
-                    backgroundColor: "#3B82F6",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    marginRight: 16,
-                  }}
-                >
-                  <Text
+                {user.profile_image_url ? (
+                  <Image
+                    source={{ uri: user.profile_image_url }}
                     style={{
-                      color: "white",
-                      fontSize: 32,
-                      fontWeight: "bold",
+                      width: 80,
+                      height: 80,
+                      borderRadius: 40,
+                      marginRight: 16,
+                    }}
+                  />
+                ) : (
+                  <View
+                    style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: 40,
+                      backgroundColor: "#3B82F6",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      marginRight: 16,
                     }}
                   >
-                    {userData.name
-                      ? userData.name.charAt(0).toUpperCase()
-                      : userData.email.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
+                    <Text
+                      style={{
+                        color: "white",
+                        fontSize: 32,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {user.first_name
+                        ? user.first_name.charAt(0).toUpperCase()
+                        : user.email?.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
 
                 <View style={{ flex: 1 }}>
                   <View
@@ -398,11 +393,11 @@ export default function ProfilePage() {
                         flex: 1,
                       }}
                     >
-                      {profileData?.first_name && profileData?.last_name
-                        ? `${profileData.first_name} ${profileData.last_name}`
-                        : userData.name || userData.email}
+                      {user.first_name && user.last_name
+                        ? `${user.first_name} ${user.last_name}`
+                        : user.email}
                     </Text>
-                    {profileData?.verified && (
+                    {user.id_verified && (
                       <View
                         style={{
                           backgroundColor: "#10B981",
@@ -432,37 +427,35 @@ export default function ProfilePage() {
                       marginBottom: 4,
                     }}
                   >
-                    {userData.email}
+                    {user.email}
                   </Text>
 
-                  {profileData?.location_city &&
-                    profileData?.location_state && (
-                      <View
+                  {user.location_city && user.location_state && (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <MapPin
+                        size={12}
+                        color={isDark ? "#8F8F8F" : "#9CA3AF"}
+                      />
+                      <Text
                         style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          marginBottom: 8,
+                          fontFamily: "Inter_400Regular",
+                          fontSize: 12,
+                          color: isDark ? "#8F8F8F" : "#9CA3AF",
+                          marginLeft: 4,
                         }}
                       >
-                        <MapPin
-                          size={12}
-                          color={isDark ? "#8F8F8F" : "#9CA3AF"}
-                        />
-                        <Text
-                          style={{
-                            fontFamily: "Inter_400Regular",
-                            fontSize: 12,
-                            color: isDark ? "#8F8F8F" : "#9CA3AF",
-                            marginLeft: 4,
-                          }}
-                        >
-                          {profileData.location_city},{" "}
-                          {profileData.location_state}
-                        </Text>
-                      </View>
-                    )}
+                        {user.location_city}, {user.location_state}
+                      </Text>
+                    </View>
+                  )}
 
-                  {profileData?.user_type && (
+                  {user.user_type && (
                     <Text
                       style={{
                         fontFamily: "Inter_400Regular",
@@ -471,7 +464,7 @@ export default function ProfilePage() {
                         textTransform: "capitalize",
                       }}
                     >
-                      {profileData.user_type} Account
+                      {user.user_type} Account
                     </Text>
                   )}
                 </View>
@@ -489,7 +482,7 @@ export default function ProfilePage() {
               </View>
 
               {/* Profile Completion Prompt */}
-              {!profileData && (
+              {!user.first_name && (
                 <View
                   style={{
                     backgroundColor: "#FEF3C7",
@@ -540,8 +533,8 @@ export default function ProfilePage() {
                 </View>
               )}
 
-              {/* User Stats */}
-              {stats && profileData && (
+              {/* User Stats or Tasker Stats */}
+              {hasTaskerProfile && taskerProfile ? (
                 <View
                   style={{
                     flexDirection: "row",
@@ -559,7 +552,7 @@ export default function ProfilePage() {
                         color: isDark ? "#FFFFFF" : "#000000",
                       }}
                     >
-                      {stats.totalBookings}
+                      {taskerProfile.total_tasks_completed || 0}
                     </Text>
                     <Text
                       style={{
@@ -568,7 +561,7 @@ export default function ProfilePage() {
                         color: isDark ? "#B3B3B3" : "#6B7280",
                       }}
                     >
-                      Total Bookings
+                      Tasks Done
                     </Text>
                   </View>
 
@@ -585,7 +578,7 @@ export default function ProfilePage() {
                           marginLeft: 4,
                         }}
                       >
-                        {stats.averageRating}
+                        {taskerProfile.avg_rating?.toFixed(1) || "N/A"}
                       </Text>
                     </View>
                     <Text
@@ -595,7 +588,7 @@ export default function ProfilePage() {
                         color: isDark ? "#B3B3B3" : "#6B7280",
                       }}
                     >
-                      Avg Rating
+                      Rating
                     </Text>
                   </View>
 
@@ -607,7 +600,7 @@ export default function ProfilePage() {
                         color: "#16A34A",
                       }}
                     >
-                      ${stats.totalSpent}
+                      ${taskerProfile.hourly_rate || 0}
                     </Text>
                     <Text
                       style={{
@@ -616,12 +609,202 @@ export default function ProfilePage() {
                         color: isDark ? "#B3B3B3" : "#6B7280",
                       }}
                     >
-                      Total Spent
+                      Hourly Rate
                     </Text>
                   </View>
                 </View>
+              ) : (
+                stats &&
+                user.first_name && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-around",
+                      paddingTop: 16,
+                      borderTopWidth: 1,
+                      borderTopColor: isDark ? "#2D2D2D" : "#E5E7EB",
+                    }}
+                  >
+                    <View style={{ alignItems: "center" }}>
+                      <Text
+                        style={{
+                          fontFamily: "Inter_700Bold",
+                          fontSize: 20,
+                          color: isDark ? "#FFFFFF" : "#000000",
+                        }}
+                      >
+                        {stats.totalBookings}
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: "Inter_400Regular",
+                          fontSize: 12,
+                          color: isDark ? "#B3B3B3" : "#6B7280",
+                        }}
+                      >
+                        Bookings
+                      </Text>
+                    </View>
+
+                    <View style={{ alignItems: "center" }}>
+                      <View
+                        style={{ flexDirection: "row", alignItems: "center" }}
+                      >
+                        <Star size={16} color="#F59E0B" />
+                        <Text
+                          style={{
+                            fontFamily: "Inter_700Bold",
+                            fontSize: 20,
+                            color: isDark ? "#FFFFFF" : "#000000",
+                            marginLeft: 4,
+                          }}
+                        >
+                          {stats.averageRating}
+                        </Text>
+                      </View>
+                      <Text
+                        style={{
+                          fontFamily: "Inter_400Regular",
+                          fontSize: 12,
+                          color: isDark ? "#B3B3B3" : "#6B7280",
+                        }}
+                      >
+                        Avg Rating
+                      </Text>
+                    </View>
+
+                    <View style={{ alignItems: "center" }}>
+                      <Text
+                        style={{
+                          fontFamily: "Inter_700Bold",
+                          fontSize: 20,
+                          color: "#16A34A",
+                        }}
+                      >
+                        ${stats.totalSpent}
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: "Inter_400Regular",
+                          fontSize: 12,
+                          color: isDark ? "#B3B3B3" : "#6B7280",
+                        }}
+                      >
+                        Total Spent
+                      </Text>
+                    </View>
+                  </View>
+                )
               )}
             </View>
+          )}
+
+          {/* Manage Tasks - Show when hasTaskerProfile */}
+          {user && hasTaskerProfile && (
+            <TouchableOpacity
+              onPress={() => router.push("/tasker-tasks")}
+              style={{
+                backgroundColor: isDark ? "#1E293B" : "#EFF6FF",
+                margin: 16,
+                marginTop: 0,
+                borderRadius: 16,
+                padding: 20,
+                borderWidth: 1,
+                borderColor: isDark ? "#3B82F6" : "#BFDBFE",
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 12,
+                    backgroundColor: "#3B82F6",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginRight: 16,
+                  }}
+                >
+                  <ClipboardList size={24} color="white" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 16,
+                      color: isDark ? "#FFFFFF" : "#1E40AF",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Manage Tasks
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: "Inter_400Regular",
+                      fontSize: 14,
+                      color: isDark ? "#93C5FD" : "#3B82F6",
+                    }}
+                  >
+                    View and manage your assigned tasks
+                  </Text>
+                </View>
+                <ChevronRight size={20} color="#3B82F6" />
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Become a Tasker CTA - Show when !hasTaskerProfile */}
+          {user && !hasTaskerProfile && (
+            <TouchableOpacity
+              onPress={() => router.push("/become-tasker")}
+              style={{
+                backgroundColor: isDark ? "#1E3A2F" : "#ECFDF5",
+                margin: 16,
+                marginTop: 0,
+                borderRadius: 16,
+                padding: 20,
+                borderWidth: 1,
+                borderColor: isDark ? "#10B981" : "#A7F3D0",
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 12,
+                    backgroundColor: "#10B981",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginRight: 16,
+                  }}
+                >
+                  <Briefcase size={24} color="white" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 16,
+                      color: isDark ? "#FFFFFF" : "#065F46",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Become a Service Provider
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: "Inter_400Regular",
+                      fontSize: 14,
+                      color: isDark ? "#A7F3D0" : "#047857",
+                    }}
+                  >
+                    Start earning by offering your services
+                  </Text>
+                </View>
+                <ChevronRight size={20} color="#10B981" />
+              </View>
+            </TouchableOpacity>
           )}
 
           {/* Menu Items */}

@@ -7,20 +7,22 @@ import {
   ScrollView,
   useColorScheme,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 import {
   ArrowLeft,
-  MapPin,
-  Calendar,
   Clock,
-  DollarSign,
   AlertCircle,
   CheckCircle,
+  ChevronDown,
+  Plus,
 } from "lucide-react-native";
 import KeyboardAvoidingAnimatedView from "@/components/KeyboardAvoidingAnimatedView";
+import { useCurrentUser } from "@/utils/auth";
+import { categoriesApi, addressesApi, tasksApi } from "@/api";
 import {
   useFonts,
   Inter_600SemiBold,
@@ -32,27 +34,40 @@ export default function ServiceRequestPage() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { user } = useCurrentUser();
   const [loading, setLoading] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    serviceId: "",
-    locationAddress: "",
-    locationCity: "",
-    locationState: "",
-    locationZip: "",
-    scheduledDate: "",
-    scheduledTime: "",
+    categoryId: "",
+    addressId: "",
+    taskDate: "",
+    taskTime: "",
     budgetMin: "",
     budgetMax: "",
-    urgency: "normal",
-    customerNotes: "",
+    urgency: "medium",
+    bookingType: "open_bidding",
   });
 
-  const [services, setServices] = useState([]);
-  const [selectedService, setSelectedService] = useState(null);
+  // New address fields (when creating a new address)
+  const [newAddress, setNewAddress] = useState({
+    street_address: "",
+    city: "",
+    county: "",
+    postal_code: "",
+  });
+
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
+  const [isNewAddress, setIsNewAddress] = useState(false);
+
   const [errors, setErrors] = useState({});
 
   const [fontsLoaded] = useFonts({
@@ -62,17 +77,32 @@ export default function ServiceRequestPage() {
   });
 
   useEffect(() => {
-    loadServices();
+    loadCategories();
+    loadAddresses();
   }, []);
 
-  const loadServices = async () => {
+  const loadCategories = async () => {
     try {
-      const { servicesApi } = await import("@/api");
-      const data = await servicesApi.getServices();
-      setServices(data.services);
+      const data = await categoriesApi.getCategories({ active: true });
+      setCategories(Array.isArray(data) ? data : data.categories || data.data || []);
     } catch (error) {
-      console.error("Error loading services:", error);
-      Alert.alert("Error", "Failed to load services. Please try again.");
+      console.error("Error loading categories:", error);
+    }
+  };
+
+  const loadAddresses = async () => {
+    try {
+      const data = await addressesApi.getAddresses();
+      const list = Array.isArray(data) ? data : data.addresses || data.data || [];
+      setAddresses(list);
+      // Auto-select default address
+      const defaultAddr = list.find((a) => a.is_default) || list[0];
+      if (defaultAddr) {
+        setSelectedAddress(defaultAddr);
+        setFormData((prev) => ({ ...prev, addressId: defaultAddr.id }));
+      }
+    } catch (error) {
+      console.error("Error loading addresses:", error);
     }
   };
 
@@ -80,43 +110,56 @@ export default function ServiceRequestPage() {
     router.back();
   };
 
-  const handleServiceSelect = (service) => {
-    setSelectedService(service);
-    setFormData((prev) => ({
-      ...prev,
-      serviceId: service.id,
-      title: service.name,
-    }));
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+    setFormData((prev) => ({ ...prev, categoryId: category.id }));
+    setShowCategoryPicker(false);
+  };
+
+  const handleAddressSelect = (address) => {
+    if (address === "new") {
+      setIsNewAddress(true);
+      setSelectedAddress(null);
+      setFormData((prev) => ({ ...prev, addressId: "" }));
+    } else {
+      setIsNewAddress(false);
+      setSelectedAddress(address);
+      setFormData((prev) => ({ ...prev, addressId: address.id }));
+    }
+    setShowAddressPicker(false);
   };
 
   const validateForm = () => {
     const newErrors = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = "Service title is required";
+      newErrors.title = "Titlul este obligatoriu";
+    }
+    if (!formData.categoryId) {
+      newErrors.category = "Selecteaza o categorie";
+    }
+    if (!formData.description.trim()) {
+      newErrors.description = "Descrierea este obligatorie";
     }
 
-    if (!formData.serviceId) {
-      newErrors.service = "Please select a service";
+    if (!formData.addressId && !isNewAddress) {
+      newErrors.address = "Selecteaza o adresa";
     }
 
-    if (!formData.locationAddress.trim()) {
-      newErrors.locationAddress = "Address is required";
-    }
-
-    if (!formData.locationCity.trim()) {
-      newErrors.locationCity = "City is required";
-    }
-
-    if (!formData.locationState.trim()) {
-      newErrors.locationState = "State is required";
+    if (isNewAddress) {
+      if (!newAddress.street_address.trim()) {
+        newErrors.street_address = "Adresa este obligatorie";
+      }
+      if (!newAddress.city.trim()) {
+        newErrors.city = "Orasul este obligatoriu";
+      }
     }
 
     if (formData.budgetMin && formData.budgetMax) {
       const min = parseFloat(formData.budgetMin);
       const max = parseFloat(formData.budgetMax);
       if (min > max) {
-        newErrors.budget = "Minimum budget cannot be higher than maximum";
+        newErrors.budget = "Bugetul minim nu poate fi mai mare decat maximul";
       }
     }
 
@@ -125,41 +168,45 @@ export default function ServiceRequestPage() {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
-      // Mock customer ID - in real app this would come from auth context
-      const customerId = "customer-123";
+      let addressId = formData.addressId;
 
-      const requestData = {
-        customer_id: customerId,
-        service_id: formData.serviceId,
+      // Create new address first if needed
+      if (isNewAddress) {
+        const addressData = {
+          ...newAddress,
+          country: "RO",
+        };
+        const addressResult = await addressesApi.createAddress(addressData);
+        const created = addressResult.data || addressResult;
+        addressId = created.id;
+      }
+
+      const taskData = {
+        category_id: formData.categoryId,
+        address_id: addressId,
         title: formData.title,
-        description: formData.description || null,
-        location_address: formData.locationAddress,
-        location_city: formData.locationCity,
-        location_state: formData.locationState,
-        location_zip: formData.locationZip || null,
-        scheduled_date: formData.scheduledDate || null,
-        scheduled_time_start: formData.scheduledTime || null,
+        description: formData.description,
+        task_date: formData.taskDate || null,
+        task_time: formData.taskTime || null,
+        pricing_type: "bidding",
         budget_min: formData.budgetMin ? parseFloat(formData.budgetMin) : null,
         budget_max: formData.budgetMax ? parseFloat(formData.budgetMax) : null,
+        booking_type: formData.bookingType,
         urgency: formData.urgency,
-        customer_notes: formData.customerNotes || null,
       };
 
-      const { bookingsApi } = await import("@/api");
-      const booking = await bookingsApi.createBooking(requestData);
+      await tasksApi.createTask(taskData);
 
       Alert.alert(
-        "Success!",
-        "Your service request has been posted. Providers in your area will be notified.",
+        "Succes!",
+        "Sarcina ta a fost publicata. Mesterii din zona ta vor fi notificati.",
         [
           {
-            text: "View Bookings",
+            text: "Vezi sarcinile",
             onPress: () => router.push("/(tabs)/bookings"),
           },
           {
@@ -169,28 +216,40 @@ export default function ServiceRequestPage() {
         ],
       );
     } catch (error) {
-      console.error("Error creating service request:", error);
-      Alert.alert("Error", error.message || error.data?.error || "Failed to create service request");
+      console.error("Error creating task:", error);
+      Alert.alert(
+        "Eroare",
+        error.message || "Nu am putut crea sarcina. Incearca din nou.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const urgencyOptions = [
-    { value: "low", label: "Low Priority", icon: Clock, color: "#6B7280" },
-    { value: "normal", label: "Normal", icon: CheckCircle, color: "#10B981" },
-    {
-      value: "high",
-      label: "High Priority",
-      icon: AlertCircle,
-      color: "#F59E0B",
-    },
-    { value: "urgent", label: "Urgent", icon: AlertCircle, color: "#EF4444" },
+    { value: "low", label: "Scazuta", icon: Clock, color: "#6B7280" },
+    { value: "medium", label: "Normal", icon: CheckCircle, color: "#10B981" },
+    { value: "high", label: "Urgent", icon: AlertCircle, color: "#EF4444" },
+  ];
+
+  const bookingTypeOptions = [
+    { value: "open_bidding", label: "Primeste oferte", description: "Mesterii iti trimit oferte" },
+    { value: "instant_book", label: "Rezervare directa", description: "Atribuit automat" },
   ];
 
   if (!fontsLoaded) {
     return null;
   }
+
+  const inputStyle = {
+    backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontFamily: "Inter_400Regular",
+    fontSize: 16,
+    color: isDark ? "#FFFFFF" : "#000000",
+  };
 
   return (
     <KeyboardAvoidingAnimatedView style={{ flex: 1 }} behavior="padding">
@@ -225,7 +284,7 @@ export default function ServiceRequestPage() {
               flex: 1,
             }}
           >
-            Request Service
+            Publica o sarcina
           </Text>
         </View>
 
@@ -238,7 +297,7 @@ export default function ServiceRequestPage() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Service Selection */}
+          {/* Category Selection */}
           <View style={{ marginBottom: 24 }}>
             <Text
               style={{
@@ -248,18 +307,22 @@ export default function ServiceRequestPage() {
                 marginBottom: 12,
               }}
             >
-              Select Service *
+              Categorie *
             </Text>
 
-            {selectedService ? (
+            {selectedCategory ? (
               <TouchableOpacity
-                onPress={() => setSelectedService(null)}
+                onPress={() => {
+                  setSelectedCategory(null);
+                  setShowCategoryPicker(true);
+                }}
                 style={{
-                  backgroundColor: isDark ? "#1E1E1E" : "#F8F9FA",
-                  borderRadius: 12,
-                  padding: 16,
+                  ...inputStyle,
                   borderWidth: 2,
                   borderColor: "#10B981",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                 }}
               >
                 <Text
@@ -267,81 +330,47 @@ export default function ServiceRequestPage() {
                     fontFamily: "Inter_600SemiBold",
                     fontSize: 16,
                     color: isDark ? "#FFFFFF" : "#000000",
-                    marginBottom: 4,
                   }}
                 >
-                  {selectedService.name}
+                  {selectedCategory.name}
                 </Text>
-                <Text
-                  style={{
-                    fontFamily: "Inter_400Regular",
-                    fontSize: 14,
-                    color: isDark ? "#B3B3B3" : "#6B7280",
-                  }}
-                >
-                  {selectedService.category.name} • Tap to change
-                </Text>
+                <ChevronDown size={20} color={isDark ? "#B3B3B3" : "#6B7280"} />
               </TouchableOpacity>
             ) : (
               <View>
-                {services.slice(0, 5).map((service) => (
+                {categories.slice(0, 6).map((cat) => (
                   <TouchableOpacity
-                    key={service.id}
-                    onPress={() => handleServiceSelect(service)}
+                    key={cat.id}
+                    onPress={() => handleCategorySelect(cat)}
                     style={{
-                      backgroundColor: isDark ? "#1E1E1E" : "#F8F9FA",
-                      borderRadius: 12,
-                      padding: 16,
+                      ...inputStyle,
                       marginBottom: 8,
                       flexDirection: "row",
                       justifyContent: "space-between",
                       alignItems: "center",
                     }}
                   >
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          fontFamily: "Inter_600SemiBold",
-                          fontSize: 16,
-                          color: isDark ? "#FFFFFF" : "#000000",
-                          marginBottom: 4,
-                        }}
-                      >
-                        {service.name}
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: "Inter_400Regular",
-                          fontSize: 14,
-                          color: isDark ? "#B3B3B3" : "#6B7280",
-                        }}
-                      >
-                        {service.category.name}
-                      </Text>
-                    </View>
                     <Text
                       style={{
                         fontFamily: "Inter_600SemiBold",
-                        fontSize: 14,
-                        color: "#16A34A",
+                        fontSize: 16,
+                        color: isDark ? "#FFFFFF" : "#000000",
                       }}
                     >
-                      {service.basePriceMin > 0
-                        ? `$${service.basePriceMin}-${service.basePriceMax}`
-                        : "Contact for quote"}
+                      {cat.name}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
             )}
-            {errors.service && (
+            {errors.category && (
               <Text style={{ color: "#EF4444", fontSize: 12, marginTop: 4 }}>
-                {errors.service}
+                {errors.category}
               </Text>
             )}
           </View>
 
-          {/* Service Title */}
+          {/* Title */}
           <View style={{ marginBottom: 20 }}>
             <Text
               style={{
@@ -351,21 +380,15 @@ export default function ServiceRequestPage() {
                 marginBottom: 8,
               }}
             >
-              Service Title *
+              Titlu *
             </Text>
             <TextInput
               style={{
-                backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontFamily: "Inter_400Regular",
-                fontSize: 16,
-                color: isDark ? "#FFFFFF" : "#000000",
+                ...inputStyle,
                 borderWidth: errors.title ? 1 : 0,
                 borderColor: "#EF4444",
               }}
-              placeholder="e.g. Emergency leak repair"
+              placeholder="ex. Reparatie scurgere urgenta"
               placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
               value={formData.title}
               onChangeText={(text) =>
@@ -389,20 +412,16 @@ export default function ServiceRequestPage() {
                 marginBottom: 8,
               }}
             >
-              Description
+              Descriere *
             </Text>
             <TextInput
               style={{
-                backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontFamily: "Inter_400Regular",
-                fontSize: 16,
-                color: isDark ? "#FFFFFF" : "#000000",
+                ...inputStyle,
                 textAlignVertical: "top",
+                borderWidth: errors.description ? 1 : 0,
+                borderColor: "#EF4444",
               }}
-              placeholder="Describe what you need help with..."
+              placeholder="Descrie ce ai nevoie..."
               placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
               multiline
               numberOfLines={4}
@@ -411,9 +430,14 @@ export default function ServiceRequestPage() {
                 setFormData((prev) => ({ ...prev, description: text }))
               }
             />
+            {errors.description && (
+              <Text style={{ color: "#EF4444", fontSize: 12, marginTop: 4 }}>
+                {errors.description}
+              </Text>
+            )}
           </View>
 
-          {/* Location */}
+          {/* Address Selection */}
           <View style={{ marginBottom: 20 }}>
             <Text
               style={{
@@ -423,97 +447,217 @@ export default function ServiceRequestPage() {
                 marginBottom: 8,
               }}
             >
-              Location *
+              Adresa *
             </Text>
-            <TextInput
+
+            {!isNewAddress && !showAddressPicker && selectedAddress ? (
+              <TouchableOpacity
+                onPress={() => setShowAddressPicker(true)}
+                style={{
+                  ...inputStyle,
+                  borderWidth: 2,
+                  borderColor: "#10B981",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 14,
+                      color: isDark ? "#FFFFFF" : "#000000",
+                    }}
+                  >
+                    {selectedAddress.label || selectedAddress.street_address}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: "Inter_400Regular",
+                      fontSize: 12,
+                      color: isDark ? "#B3B3B3" : "#6B7280",
+                      marginTop: 2,
+                    }}
+                  >
+                    {selectedAddress.full_address ||
+                      `${selectedAddress.street_address}, ${selectedAddress.city}`}
+                  </Text>
+                </View>
+                <ChevronDown size={20} color={isDark ? "#B3B3B3" : "#6B7280"} />
+              </TouchableOpacity>
+            ) : !isNewAddress ? (
+              <View>
+                {addresses.map((addr) => (
+                  <TouchableOpacity
+                    key={addr.id}
+                    onPress={() => handleAddressSelect(addr)}
+                    style={{
+                      ...inputStyle,
+                      marginBottom: 8,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "Inter_600SemiBold",
+                        fontSize: 14,
+                        color: isDark ? "#FFFFFF" : "#000000",
+                      }}
+                    >
+                      {addr.label || addr.street_address}
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: "Inter_400Regular",
+                        fontSize: 12,
+                        color: isDark ? "#B3B3B3" : "#6B7280",
+                        marginTop: 2,
+                      }}
+                    >
+                      {addr.full_address || `${addr.street_address}, ${addr.city}`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+
+                <TouchableOpacity
+                  onPress={() => handleAddressSelect("new")}
+                  style={{
+                    ...inputStyle,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    borderWidth: 1,
+                    borderColor: isDark ? "#2D2D2D" : "#E5E7EB",
+                    borderStyle: "dashed",
+                  }}
+                >
+                  <Plus size={18} color={isDark ? "#B3B3B3" : "#6B7280"} />
+                  <Text
+                    style={{
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 14,
+                      color: isDark ? "#B3B3B3" : "#6B7280",
+                      marginLeft: 8,
+                    }}
+                  >
+                    Adauga adresa noua
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View>
+                <TextInput
+                  style={{
+                    ...inputStyle,
+                    marginBottom: 8,
+                    borderWidth: errors.street_address ? 1 : 0,
+                    borderColor: "#EF4444",
+                  }}
+                  placeholder="Adresa (strada, numar)"
+                  placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
+                  value={newAddress.street_address}
+                  onChangeText={(text) =>
+                    setNewAddress((prev) => ({ ...prev, street_address: text }))
+                  }
+                />
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <TextInput
+                    style={{
+                      ...inputStyle,
+                      flex: 2,
+                      borderWidth: errors.city ? 1 : 0,
+                      borderColor: "#EF4444",
+                    }}
+                    placeholder="Oras"
+                    placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
+                    value={newAddress.city}
+                    onChangeText={(text) =>
+                      setNewAddress((prev) => ({ ...prev, city: text }))
+                    }
+                  />
+                  <TextInput
+                    style={{ ...inputStyle, flex: 1 }}
+                    placeholder="Judet"
+                    placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
+                    value={newAddress.county}
+                    onChangeText={(text) =>
+                      setNewAddress((prev) => ({ ...prev, county: text }))
+                    }
+                  />
+                  <TextInput
+                    style={{ ...inputStyle, flex: 1 }}
+                    placeholder="Cod postal"
+                    placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
+                    value={newAddress.postal_code}
+                    onChangeText={(text) =>
+                      setNewAddress((prev) => ({ ...prev, postal_code: text }))
+                    }
+                  />
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setIsNewAddress(false);
+                    setShowAddressPicker(true);
+                  }}
+                  style={{ marginTop: 8 }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Inter_400Regular",
+                      fontSize: 14,
+                      color: "#3B82F6",
+                    }}
+                  >
+                    Foloseste o adresa existenta
+                  </Text>
+                </TouchableOpacity>
+
+                {(errors.street_address || errors.city) && (
+                  <Text style={{ color: "#EF4444", fontSize: 12, marginTop: 4 }}>
+                    Adresa si orasul sunt obligatorii
+                  </Text>
+                )}
+              </View>
+            )}
+            {errors.address && (
+              <Text style={{ color: "#EF4444", fontSize: 12, marginTop: 4 }}>
+                {errors.address}
+              </Text>
+            )}
+          </View>
+
+          {/* Date & Time */}
+          <View style={{ marginBottom: 20 }}>
+            <Text
               style={{
-                backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontFamily: "Inter_400Regular",
+                fontFamily: "Inter_600SemiBold",
                 fontSize: 16,
                 color: isDark ? "#FFFFFF" : "#000000",
                 marginBottom: 8,
-                borderWidth: errors.locationAddress ? 1 : 0,
-                borderColor: "#EF4444",
               }}
-              placeholder="Street address"
-              placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
-              value={formData.locationAddress}
-              onChangeText={(text) =>
-                setFormData((prev) => ({ ...prev, locationAddress: text }))
-              }
-            />
-
+            >
+              Data si ora (optional)
+            </Text>
             <View style={{ flexDirection: "row", gap: 8 }}>
               <TextInput
-                style={{
-                  backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
-                  borderRadius: 12,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  fontFamily: "Inter_400Regular",
-                  fontSize: 16,
-                  color: isDark ? "#FFFFFF" : "#000000",
-                  flex: 2,
-                  borderWidth: errors.locationCity ? 1 : 0,
-                  borderColor: "#EF4444",
-                }}
-                placeholder="City"
+                style={{ ...inputStyle, flex: 1 }}
+                placeholder="YYYY-MM-DD"
                 placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
-                value={formData.locationCity}
+                value={formData.taskDate}
                 onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, locationCity: text }))
+                  setFormData((prev) => ({ ...prev, taskDate: text }))
                 }
               />
               <TextInput
-                style={{
-                  backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
-                  borderRadius: 12,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  fontFamily: "Inter_400Regular",
-                  fontSize: 16,
-                  color: isDark ? "#FFFFFF" : "#000000",
-                  flex: 1,
-                  borderWidth: errors.locationState ? 1 : 0,
-                  borderColor: "#EF4444",
-                }}
-                placeholder="State"
+                style={{ ...inputStyle, flex: 1 }}
+                placeholder="HH:MM"
                 placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
-                value={formData.locationState}
+                value={formData.taskTime}
                 onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, locationState: text }))
-                }
-              />
-              <TextInput
-                style={{
-                  backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
-                  borderRadius: 12,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  fontFamily: "Inter_400Regular",
-                  fontSize: 16,
-                  color: isDark ? "#FFFFFF" : "#000000",
-                  flex: 1,
-                }}
-                placeholder="ZIP"
-                placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
-                value={formData.locationZip}
-                onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, locationZip: text }))
+                  setFormData((prev) => ({ ...prev, taskTime: text }))
                 }
               />
             </View>
-
-            {(errors.locationAddress ||
-              errors.locationCity ||
-              errors.locationState) && (
-              <Text style={{ color: "#EF4444", fontSize: 12, marginTop: 4 }}>
-                Address, city, and state are required
-              </Text>
-            )}
           </View>
 
           {/* Budget */}
@@ -526,23 +670,15 @@ export default function ServiceRequestPage() {
                 marginBottom: 8,
               }}
             >
-              Budget Range (Optional)
+              Buget (optional)
             </Text>
             <View
               style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
             >
               <View style={{ flex: 1 }}>
                 <TextInput
-                  style={{
-                    backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    fontFamily: "Inter_400Regular",
-                    fontSize: 16,
-                    color: isDark ? "#FFFFFF" : "#000000",
-                  }}
-                  placeholder="Min ($)"
+                  style={inputStyle}
+                  placeholder="Min (lei)"
                   placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
                   keyboardType="numeric"
                   value={formData.budgetMin}
@@ -558,20 +694,12 @@ export default function ServiceRequestPage() {
                   color: isDark ? "#8F8F8F" : "#9CA3AF",
                 }}
               >
-                to
+                -
               </Text>
               <View style={{ flex: 1 }}>
                 <TextInput
-                  style={{
-                    backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    fontFamily: "Inter_400Regular",
-                    fontSize: 16,
-                    color: isDark ? "#FFFFFF" : "#000000",
-                  }}
-                  placeholder="Max ($)"
+                  style={inputStyle}
+                  placeholder="Max (lei)"
                   placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
                   keyboardType="numeric"
                   value={formData.budgetMax}
@@ -588,7 +716,7 @@ export default function ServiceRequestPage() {
             )}
           </View>
 
-          {/* Urgency */}
+          {/* Booking Type */}
           <View style={{ marginBottom: 20 }}>
             <Text
               style={{
@@ -598,7 +726,74 @@ export default function ServiceRequestPage() {
                 marginBottom: 8,
               }}
             >
-              Urgency Level
+              Tip rezervare
+            </Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {bookingTypeOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  onPress={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      bookingType: option.value,
+                    }))
+                  }
+                  style={{
+                    flex: 1,
+                    backgroundColor:
+                      formData.bookingType === option.value
+                        ? "#10B98120"
+                        : isDark
+                          ? "#1E1E1E"
+                          : "#F3F4F6",
+                    borderRadius: 12,
+                    padding: 12,
+                    borderWidth: formData.bookingType === option.value ? 1 : 0,
+                    borderColor: "#10B981",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 14,
+                      color:
+                        formData.bookingType === option.value
+                          ? "#10B981"
+                          : isDark
+                            ? "#FFFFFF"
+                            : "#000000",
+                      marginBottom: 4,
+                    }}
+                  >
+                    {option.label}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: "Inter_400Regular",
+                      fontSize: 12,
+                      color: isDark ? "#8F8F8F" : "#9CA3AF",
+                      textAlign: "center",
+                    }}
+                  >
+                    {option.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Urgency */}
+          <View style={{ marginBottom: 32 }}>
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 16,
+                color: isDark ? "#FFFFFF" : "#000000",
+                marginBottom: 8,
+              }}
+            >
+              Nivel urgenta
             </Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {urgencyOptions.map((option) => (
@@ -643,40 +838,6 @@ export default function ServiceRequestPage() {
               ))}
             </View>
           </View>
-
-          {/* Additional Notes */}
-          <View style={{ marginBottom: 32 }}>
-            <Text
-              style={{
-                fontFamily: "Inter_600SemiBold",
-                fontSize: 16,
-                color: isDark ? "#FFFFFF" : "#000000",
-                marginBottom: 8,
-              }}
-            >
-              Additional Notes
-            </Text>
-            <TextInput
-              style={{
-                backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontFamily: "Inter_400Regular",
-                fontSize: 16,
-                color: isDark ? "#FFFFFF" : "#000000",
-                textAlignVertical: "top",
-              }}
-              placeholder="Any special instructions or requirements..."
-              placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
-              multiline
-              numberOfLines={3}
-              value={formData.customerNotes}
-              onChangeText={(text) =>
-                setFormData((prev) => ({ ...prev, customerNotes: text }))
-              }
-            />
-          </View>
         </ScrollView>
 
         {/* Submit Button */}
@@ -702,17 +863,23 @@ export default function ServiceRequestPage() {
               borderRadius: 12,
               paddingVertical: 16,
               alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
             }}
           >
-            <Text
-              style={{
-                fontFamily: "Inter_600SemiBold",
-                fontSize: 16,
-                color: "#FFFFFF",
-              }}
-            >
-              {loading ? "Creating Request..." : "Post Service Request"}
-            </Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text
+                style={{
+                  fontFamily: "Inter_600SemiBold",
+                  fontSize: 16,
+                  color: "#FFFFFF",
+                }}
+              >
+                Publica sarcina
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>

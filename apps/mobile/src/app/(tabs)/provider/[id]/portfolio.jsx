@@ -10,6 +10,7 @@ import {
   Share,
   PanResponder,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -20,6 +21,7 @@ import {
   X,
   Share2,
 } from "lucide-react-native";
+import { Image } from "expo-image";
 import {
   useFonts,
   Inter_600SemiBold,
@@ -27,6 +29,8 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 import { colors } from "@/theme/colors";
+import { providersApi } from "@/api";
+import { mapPortfolioItem } from "@/utils/mapProviderData";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_COLUMNS = 2;
@@ -47,6 +51,7 @@ export default function PortfolioGalleryScreen() {
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
   const [portfolio, setPortfolio] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [fontsLoaded] = useFonts({
     Inter_600SemiBold,
@@ -58,67 +63,28 @@ export default function PortfolioGalleryScreen() {
     loadPortfolio();
   }, [id]);
 
-  const loadPortfolio = () => {
-    // Mock portfolio data
-    const mockPortfolio = [
-      {
-        id: 1,
-        image: null,
-        category: "montaj",
-        description: "Montaj chiuveta – finalizat in 2024",
-        service: "Montaj sanitare",
-      },
-      {
-        id: 2,
-        image: null,
-        category: "reparatii",
-        description: "Reparatie instalatie termica",
-        service: "Reparatii instalatii",
-      },
-      {
-        id: 3,
-        image: null,
-        category: "instalatii",
-        description: "Instalatie centrala termica",
-        service: "Instalatii termice",
-      },
-      {
-        id: 4,
-        image: null,
-        category: "montaj",
-        description: "Montaj WC si cabina dus",
-        service: "Montaj sanitare",
-      },
-      {
-        id: 5,
-        image: null,
-        category: "inainte-dupa",
-        description: "Inainte si dupa renovare baie",
-        service: "Renovari",
-      },
-      {
-        id: 6,
-        image: null,
-        category: "reparatii",
-        description: "Reparatie scurgere",
-        service: "Reparatii instalatii",
-      },
-      {
-        id: 7,
-        image: null,
-        category: "instalatii",
-        description: "Instalatie calorifere",
-        service: "Instalatii termice",
-      },
-      {
-        id: 8,
-        image: null,
-        category: "montaj",
-        description: "Montaj robineti",
-        service: "Montaj sanitare",
-      },
-    ];
-    setPortfolio(mockPortfolio);
+  const loadPortfolio = async () => {
+    setLoading(true);
+    try {
+      // First fetch the provider to get user_id
+      const profile = await providersApi.getProvider(id);
+      const userId = profile.user_id;
+
+      const data = await providersApi.getPortfolio(userId);
+      const items = (Array.isArray(data) ? data : []).map(mapPortfolioItem);
+
+      if (items.length > 0) {
+        setPortfolio(items);
+      } else {
+        // Empty state — keep empty array
+        setPortfolio([]);
+      }
+    } catch (error) {
+      console.error("Error loading portfolio:", error);
+      setPortfolio([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredPortfolio =
@@ -196,6 +162,20 @@ export default function PortfolioGalleryScreen() {
         </ScrollView>
       </View>
       {/* Gallery */}
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color={colors.primary.teal} />
+        </View>
+      ) : portfolio.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+          <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: colors.text.primary, textAlign: "center", marginBottom: 8 }}>
+            Portofoliu gol
+          </Text>
+          <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.text.secondary, textAlign: "center" }}>
+            Acest prestator nu are inca imagini in portofoliu.
+          </Text>
+        </View>
+      ) : (
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
@@ -215,15 +195,25 @@ export default function PortfolioGalleryScreen() {
               }}
               activeOpacity={0.8}
             >
-              <View style={styles.imagePlaceholder}>
-                <Text style={styles.imagePlaceholderText}>
-                  {item.service}
-                </Text>
-              </View>
+              {item.image ? (
+                <Image
+                  source={{ uri: item.image }}
+                  style={{ width: "100%", aspectRatio: 1, borderRadius: 12 }}
+                  contentFit="cover"
+                  transition={200}
+                />
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <Text style={styles.imagePlaceholderText}>
+                    {item.service}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
+      )}
 
       {/* Fullscreen Photo Viewer */}
       {selectedImageIndex !== null && (

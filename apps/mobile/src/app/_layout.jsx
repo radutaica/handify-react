@@ -43,6 +43,8 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="welcome" />
           <Stack.Screen name="onboarding" />
+          <Stack.Screen name="become-tasker" />
+          <Stack.Screen name="tasker-tasks" />
           <Stack.Screen name="auth" options={{ presentation: "modal" }} />
         </Stack>
       </GestureHandlerRootView>

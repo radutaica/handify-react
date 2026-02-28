@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -22,22 +22,26 @@ import {
 import { colors } from "@/theme/colors";
 import SearchBar from "@/components/home/SearchBar";
 import ProfessionalCard from "@/components/home/ProfessionalCard";
+import { providersApi } from "@/api";
+import { mapProviderToCard } from "@/utils/mapProviderData";
 
 export default function ProvidersPage() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(params?.category || "");
+  const [categoryId, setCategoryId] = useState(params?.categoryId || "");
   const [providers, setProviders] = useState([]);
   const [filteredProviders, setFilteredProviders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState("rating"); // "rating", "distance", "name"
+  const [error, setError] = useState(null);
+  const [sortBy, setSortBy] = useState("rating");
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState({
     minRating: 0,
     maxDistance: 10,
-    availability: [], // ["online", "offline"]
-    priceRange: [], // ["low", "medium", "high"]
+    availability: [],
+    priceRange: [],
   });
 
   const [fontsLoaded] = useFonts({
@@ -47,169 +51,65 @@ export default function ProvidersPage() {
   });
 
   useEffect(() => {
-    loadProviders();
-  }, []);
-
-  useEffect(() => {
     if (params?.category) {
       setSelectedCategory(params.category);
     }
-  }, [params?.category]);
+    if (params?.categoryId) {
+      setCategoryId(params.categoryId);
+    }
+  }, [params?.category, params?.categoryId]);
 
   useEffect(() => {
-    filterAndSortProviders();
-  }, [searchQuery, providers, sortBy, selectedCategory, filters]);
+    loadProviders();
+  }, [sortBy, categoryId, filters.minRating, filters.priceRange]);
+
+  // Client-side filters (distance, availability) applied after fetch
+  useEffect(() => {
+    applyClientFilters();
+  }, [providers, searchQuery, filters.maxDistance, filters.availability]);
 
   const loadProviders = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // TODO: Replace with actual API call
-      // const { providersApi } = await import("@/api");
-      // const data = await providersApi.getProviders();
-      
-      // Mock data - will be replaced with API call
-      const mockProviders = [
-        {
-          id: "1",
-          name: "Ion M.",
-          profession: "Instalatii sanitare",
-          rating: 4.9,
-          reviewCount: 127,
-          distance: "1.2 km",
-          price: "de la 80 lei",
-          avatarColor: colors.primary.teal,
-          isOnline: true,
-          isRecommended: true,
-        },
-        {
-          id: "2",
-          name: "Andrei P.",
-          profession: "Reparatii",
-          rating: 4.8,
-          reviewCount: 89,
-          distance: "2.5 km",
-          price: "de la 100 lei",
-          avatarColor: colors.accent.amber,
-          isOnline: false,
-          isRecommended: false,
-        },
-        {
-          id: "3",
-          name: "Alexandru D.",
-          profession: "Electrician",
-          rating: 4.9,
-          reviewCount: 156,
-          distance: "1.5 km",
-          price: "de la 80 lei",
-          avatarColor: colors.primary.teal,
-          isOnline: true,
-          isRecommended: false,
-        },
-        {
-          id: "4",
-          name: "Elena M.",
-          profession: "Coafor",
-          rating: 5.0,
-          reviewCount: 89,
-          distance: "0.9 km",
-          price: "de la 50 lei",
-          avatarColor: colors.accent.purple,
-          isOnline: true,
-          isRecommended: true,
-        },
-        {
-          id: "5",
-          name: "Mihai R.",
-          profession: "Instalator",
-          rating: 4.8,
-          reviewCount: 156,
-          distance: "2.1 km",
-          price: "de la 100 lei",
-          avatarColor: colors.accent.amber,
-          isOnline: true,
-          isRecommended: false,
-        },
-        {
-          id: "6",
-          name: "Maria S.",
-          profession: "Curatenie",
-          rating: 4.7,
-          reviewCount: 203,
-          distance: "1.8 km",
-          price: "de la 60 lei",
-          avatarColor: colors.accent.purple,
-          isOnline: false,
-          isRecommended: false,
-        },
-        {
-          id: "7",
-          name: "George T.",
-          profession: "Reparatii Auto",
-          rating: 4.9,
-          reviewCount: 142,
-          distance: "3.2 km",
-          price: "de la 120 lei",
-          avatarColor: colors.primary.teal,
-          isOnline: true,
-          isRecommended: true,
-        },
-        {
-          id: "8",
-          name: "Ana L.",
-          profession: "Beauty & Hairstyle",
-          rating: 4.8,
-          reviewCount: 98,
-          distance: "1.1 km",
-          price: "de la 70 lei",
-          avatarColor: colors.accent.amber,
-          isOnline: true,
-          isRecommended: false,
-        },
-        {
-          id: "9",
-          name: "Radu C.",
-          profession: "IT & Device Repair",
-          rating: 4.6,
-          reviewCount: 67,
-          distance: "2.8 km",
-          price: "de la 90 lei",
-          avatarColor: colors.primary.teal,
-          isOnline: false,
-          isRecommended: false,
-        },
-        {
-          id: "10",
-          name: "Cristina N.",
-          profession: "Renovari",
-          rating: 4.9,
-          reviewCount: 178,
-          distance: "1.7 km",
-          price: "de la 150 lei",
-          avatarColor: colors.accent.purple,
-          isOnline: true,
-          isRecommended: true,
-        },
-      ];
+      const apiParams = {
+        sort: sortBy === "name" ? "rating" : sortBy,
+        activeOnly: true,
+      };
 
-      setProviders(mockProviders);
-    } catch (error) {
-      console.error("Error loading providers:", error);
+      if (categoryId) apiParams.categoryId = categoryId;
+      if (filters.minRating > 0) apiParams.minRating = filters.minRating;
+
+      // Map price range filter chips to API params
+      if (filters.priceRange.length > 0) {
+        const rates = filters.priceRange;
+        if (rates.includes("low") && !rates.includes("medium") && !rates.includes("high")) {
+          apiParams.maxRate = 70;
+        } else if (rates.includes("high") && !rates.includes("low") && !rates.includes("medium")) {
+          apiParams.minRate = 100;
+        } else if (rates.includes("medium") && !rates.includes("low") && !rates.includes("high")) {
+          apiParams.minRate = 70;
+          apiParams.maxRate = 100;
+        }
+      }
+
+      const response = await providersApi.getProviders(apiParams);
+      const profiles = response.data || response;
+      const mapped = (Array.isArray(profiles) ? profiles : []).map(mapProviderToCard);
+      setProviders(mapped);
+    } catch (err) {
+      console.error("Error loading providers:", err);
+      setError("Nu s-au putut incarca providerii. Incearca din nou.");
+      setProviders([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const filterAndSortProviders = () => {
+  const applyClientFilters = () => {
     let filtered = [...providers];
 
-    // Filter by category
-    if (selectedCategory) {
-      filtered = filtered.filter((provider) =>
-        provider.profession.toLowerCase().includes(selectedCategory.toLowerCase())
-      );
-    }
-
-    // Filter by search query
+    // Client-side search filter (supplements server-side search)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(
@@ -219,66 +119,16 @@ export default function ProvidersPage() {
       );
     }
 
-    // Filter by rating
-    if (filters.minRating > 0) {
-      filtered = filtered.filter((provider) => provider.rating >= filters.minRating);
-    }
+    // Client-side distance filter (no backend support yet)
+    // distance is not available from API, so skip if no distance field
 
-    // Filter by distance
-    if (filters.maxDistance < 10) {
-      filtered = filtered.filter((provider) => {
-        const distance = parseFloat(provider.distance.replace(" km", ""));
-        return distance <= filters.maxDistance;
-      });
-    }
+    // Client-side availability filter (no backend support yet)
+    // isOnline is not available from API, so skip
 
-    // Filter by availability
-    if (filters.availability.length > 0) {
-      filtered = filtered.filter((provider) => {
-        if (filters.availability.includes("online") && filters.availability.includes("offline")) {
-          return true; // Show all
-        }
-        if (filters.availability.includes("online")) {
-          return provider.isOnline === true;
-        }
-        if (filters.availability.includes("offline")) {
-          return provider.isOnline === false;
-        }
-        return true;
-      });
+    // Client-side name sort
+    if (sortBy === "name") {
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
     }
-
-    // Filter by price range
-    if (filters.priceRange.length > 0) {
-      filtered = filtered.filter((provider) => {
-        const priceMatch = provider.price.match(/\d+/);
-        if (!priceMatch) return true;
-        const price = parseInt(priceMatch[0]);
-        
-        if (filters.priceRange.includes("low") && price < 70) return true;
-        if (filters.priceRange.includes("medium") && price >= 70 && price < 100) return true;
-        if (filters.priceRange.includes("high") && price >= 100) return true;
-        
-        return false;
-      });
-    }
-
-    // Sort providers
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "rating":
-          return b.rating - a.rating;
-        case "distance":
-          // Extract numeric distance for sorting
-          const distanceA = parseFloat(a.distance.replace(" km", ""));
-          const distanceB = parseFloat(b.distance.replace(" km", ""));
-          return distanceA - distanceB;
-        case "name":
-          return a.name.localeCompare(b.name);
-        default:
-          return 0;
-      }
-    });
 
     setFilteredProviders(filtered);
   };

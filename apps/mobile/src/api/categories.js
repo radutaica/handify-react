@@ -14,8 +14,8 @@ export const categoriesApi = {
     if (params.withServices) queryParams.append('with_services', 'true');
 
     const queryString = queryParams.toString();
-    const endpoint = `/api/categories${queryString ? `?${queryString}` : ''}`;
-    
+    const endpoint = `/api/v1/categories${queryString ? `?${queryString}` : ''}`;
+
     return apiClient.get(endpoint);
   },
 
@@ -23,28 +23,28 @@ export const categoriesApi = {
    * Get a single category by ID
    */
   getCategory: async (id) => {
-    return apiClient.get(`/api/categories/${id}`);
+    return apiClient.get(`/api/v1/categories/${id}`);
   },
 
   /**
    * Create a new category
    */
   createCategory: async (categoryData) => {
-    return apiClient.post('/api/categories', categoryData);
+    return apiClient.post('/api/v1/categories', categoryData);
   },
 
   /**
    * Update a category
    */
   updateCategory: async (id, categoryData) => {
-    return apiClient.put(`/api/categories/${id}`, categoryData);
+    return apiClient.put(`/api/v1/categories/${id}`, categoryData);
   },
 
   /**
    * Delete a category
    */
   deleteCategory: async (id) => {
-    return apiClient.delete(`/api/categories/${id}`);
+    return apiClient.delete(`/api/v1/categories/${id}`);
   },
 };
 

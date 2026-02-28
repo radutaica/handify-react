@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -18,9 +19,6 @@ import {
   MapPin,
   Clock,
   Wrench,
-  Droplets,
-  Flame,
-  Unplug,
 } from "lucide-react-native";
 import {
   useFonts,
@@ -30,11 +28,15 @@ import {
 } from "@expo-google-fonts/inter";
 import { colors } from "@/theme/colors";
 import SectionHeader from "@/components/home/SectionHeader";
+import { providersApi } from "@/api";
+import { mapProviderToDetail, mapReview, mapPortfolioItem } from "@/utils/mapProviderData";
 
 export default function ProviderProfileScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams();
   const [provider, setProvider] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [fontsLoaded] = useFonts({
     Inter_600SemiBold,
@@ -46,90 +48,57 @@ export default function ProviderProfileScreen() {
     loadProviderData();
   }, [id]);
 
-  const loadProviderData = () => {
-    // Mock data matching the design
-    setProvider({
-      id: id || "1",
-      name: "Alexandru Ionescu",
-      title: "Instalator Autorizat",
-      rating: 4.9,
-      reviewCount: 127,
-      profileImage: null, // Will use initials
-      isVerified: true,
-      experience: "12+ ani experienta",
-      availableToday: true,
-      about: "Cu peste 12 ani de experienta in instalatii sanitare si termice, ofer servicii de calitate pentru case si apartamente. Lucrez rapid, curat si cu materiale de top.",
-      location: "Bucuresti • Ilfov • pana la 30 km",
-      responseTime: "Raspunde in ~15 min",
-      services: [
-        {
-          id: 1,
-          name: "Reparatii instalatii",
-          description: "Robineti, tevi, scurgeri",
-          price: "de la 80 lei",
-          icon: Wrench,
-          color: "#D1FAE5",
+  const loadProviderData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const profileData = await providersApi.getProvider(id);
+      const detail = mapProviderToDetail(profileData);
+
+      // Fetch portfolio and reviews in parallel using user_id
+      const [portfolioData, reviewsData] = await Promise.all([
+        providersApi.getPortfolio(detail.userId).catch(() => []),
+        providersApi.getReviews(detail.userId).catch(() => []),
+      ]);
+
+      const portfolioItems = (Array.isArray(portfolioData) ? portfolioData : []).map(mapPortfolioItem);
+      const reviewItems = (Array.isArray(reviewsData) ? reviewsData : []).map(mapReview);
+
+      // Compute satisfied percentage from reviews
+      const totalReviews = reviewItems.length;
+      const positiveReviews = reviewItems.filter((r) => r.rating >= 4).length;
+      const satisfiedPercentage = totalReviews > 0 ? Math.round((positiveReviews / totalReviews) * 100) : 0;
+
+      // Build services from categories
+      const serviceColors = ["#D1FAE5", "#FED7AA", "#E9D5FF", "#D1FAE5"];
+      const services = detail.categories.map((cat, i) => ({
+        id: cat.id,
+        name: cat.name,
+        description: "",
+        price: detail.hourlyRate ? `de la ${Math.round(detail.hourlyRate)} lei` : "",
+        icon: Wrench,
+        color: serviceColors[i % serviceColors.length],
+      }));
+
+      setProvider({
+        ...detail,
+        services,
+        portfolio: portfolioItems.length > 0 ? portfolioItems : [{ id: 1, image: null }, { id: 2, image: null }, { id: 3, image: null }, { id: 4, image: null }],
+        reviews: {
+          average: detail.rating,
+          total: detail.reviewCount,
+          satisfiedPercentage,
+          items: reviewItems.slice(0, 5),
         },
-        {
-          id: 2,
-          name: "Montaj sanitare",
-          description: "Chiuveta, WC, cada, cabina dus",
-          price: "de la 150 lei",
-          icon: Droplets,
-          color: "#FED7AA",
-        },
-        {
-          id: 3,
-          name: "Instalatii termice",
-          description: "Calorifere, centrale termice",
-          price: "de la 200 lei",
-          icon: Flame,
-          color: "#E9D5FF",
-        },
-        {
-          id: 4,
-          name: "Desfundare canalizare",
-          description: "Interventie rapida",
-          price: "de la 100 lei",
-          icon: Unplug,
-          color: "#D1FAE5",
-        },
-      ],
-      portfolio: [
-        { id: 1, image: null },
-        { id: 2, image: null },
-        { id: 3, image: null },
-        { id: 4, image: null },
-      ],
-      reviews: {
-        average: 4.9,
-        total: 127,
-        satisfiedPercentage: 98,
-        items: [
-          {
-            id: 1,
-            author: "Maria P.",
-            rating: 5,
-            text: "Foarte profesionist, a rezolvat rapid problema cu scurgerea. Recomand!",
-            date: "acum 2 zile",
-          },
-          {
-            id: 2,
-            author: "Ion D.",
-            rating: 5,
-            text: "Excelent! Punctual si preturi corecte. Voi apela din nou.",
-            date: "acum 1 saptamana",
-          },
-          {
-            id: 3,
-            author: "Elena C.",
-            rating: 4,
-            text: "Treaba buna, singura problema a fost ca a intarziat putin.",
-            date: "acum 2 saptamani",
-          },
-        ],
-      },
-    });
+        location: "Bucuresti",
+        responseTime: detail.responseRate ? `Rata de raspuns: ${detail.responseRate}%` : "",
+      });
+    } catch (err) {
+      console.error("Error loading provider:", err);
+      setError("Nu s-a putut incarca profilul.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getInitials = (name) => {
@@ -145,8 +114,35 @@ export default function ProviderProfileScreen() {
     return name.split(" ")[0][0].toUpperCase();
   };
 
-  if (!fontsLoaded || !provider) {
+  if (!fontsLoaded) {
     return null;
+  }
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={colors.primary.teal} />
+      </View>
+    );
+  }
+
+  if (error || !provider) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
+            <ArrowLeft size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Profil Prestator</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+          <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: colors.text.primary, textAlign: "center" }}>
+            {error || "Profilul nu a fost gasit."}
+          </Text>
+        </View>
+      </View>
+    );
   }
 
   return (

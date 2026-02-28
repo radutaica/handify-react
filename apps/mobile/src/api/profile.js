@@ -37,6 +37,14 @@ export const profileApi = {
   getUser: async (userId) => {
     return apiClient.get(`/api/users/${userId}`);
   },
+
+  /**
+   * Get current authenticated user with tasker profile
+   * Response: { status: { code: 200, message: '...' }, data: { ...user, tasker_profile?: {...} } }
+   */
+  getCurrentUser: async () => {
+    return apiClient.get('/api/v1/me');
+  },
 };
 
 export default profileApi;

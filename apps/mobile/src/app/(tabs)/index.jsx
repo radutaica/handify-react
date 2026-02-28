@@ -20,6 +20,49 @@ import {
   Calendar,
   ArrowRight,
   Phone,
+  Truck,
+  Tv,
+  Package,
+  TreePine,
+  Paintbrush,
+  Droplet,
+  User,
+  PartyPopper,
+  Sofa,
+  Warehouse,
+  DoorOpen,
+  Building,
+  Grid3X3,
+  Dumbbell,
+  Armchair,
+  Move,
+  Boxes,
+  LayoutDashboard,
+  DoorClosed,
+  AppWindow,
+  Circle,
+  Image,
+  Blinds,
+  Smartphone,
+  ShoppingCart,
+  Store,
+  Heart,
+  Flower2,
+  Leaf,
+  Snowflake,
+  Brush,
+  Lightbulb,
+  Plug,
+  Fan,
+  ToggleLeft,
+  Bath,
+  Flame,
+  PersonStanding,
+  Clock,
+  Folder,
+  Dog,
+  UtensilsCrossed,
+  Wine,
 } from "lucide-react-native";
 import {
   useFonts,
@@ -36,6 +79,8 @@ import ReviewCard from "@/components/home/ReviewCard";
 import QuickActionButton from "@/components/home/QuickActionButton";
 import DiscountOfferCard from "@/components/home/DiscountOfferCard";
 import SectionHeader from "@/components/home/SectionHeader";
+import { providersApi } from "@/api";
+import { mapProviderToCard } from "@/utils/mapProviderData";
 
 export default function HomePage() {
   const insets = useSafeAreaInsets();
@@ -64,6 +109,7 @@ export default function HomePage() {
       const data = await categoriesApi.getCategories();
       
       const iconMap = {
+        // Original mappings
         Car: Car,
         Wrench: Wrench,
         Zap: Zap,
@@ -71,6 +117,62 @@ export default function HomePage() {
         Home: HomeIcon,
         Laptop: Laptop,
         Sparkles: Sparkles,
+        // Material Icons → Lucide mappings
+        cleaning: Sparkles,
+        cleaning_services: Sparkles,
+        build: Wrench,
+        local_shipping: Truck,
+        handyman: Wrench,
+        tv: Tv,
+        delivery: Package,
+        grass: TreePine,
+        format_paint: Paintbrush,
+        electrical_services: Zap,
+        plumbing: Droplet,
+        person: User,
+        celebration: PartyPopper,
+        home: HomeIcon,
+        door_front: DoorOpen,
+        business: Building,
+        texture: Grid3X3,
+        chair: Armchair,
+        shelves: Warehouse,
+        fitness_center: Dumbbell,
+        deck: Sofa,
+        move: Move,
+        inventory: Boxes,
+        warehouse: Warehouse,
+        dashboard: LayoutDashboard,
+        door_sliding: DoorClosed,
+        window: AppWindow,
+        opacity: Circle,
+        panorama: Image,
+        blinds: Blinds,
+        smart_home: Smartphone,
+        shopping_cart: ShoppingCart,
+        store: Store,
+        volunteer_activism: Heart,
+        local_florist: Flower2,
+        eco: Leaf,
+        ac_unit: Snowflake,
+        content_cut: Scissors,
+        house: HomeIcon,
+        kitchen: UtensilsCrossed,
+        brush: Brush,
+        light: Lightbulb,
+        power: Plug,
+        air: Fan,
+        toggle_on: ToggleLeft,
+        water_drop: Droplet,
+        wc: Bath,
+        hot_tub: Flame,
+        directions_run: PersonStanding,
+        schedule: Clock,
+        folder: Folder,
+        pets: Dog,
+        event: Calendar,
+        room_service: UtensilsCrossed,
+        local_bar: Wine,
       };
 
       const transformedCategories = data.map((category) => ({
@@ -98,66 +200,30 @@ export default function HomePage() {
   };
 
   const loadRecommendedProviders = async () => {
-    // Mock data matching the screenshot
-    setRecommendedProviders([
-      {
-        id: "1",
-        name: "Ion M.",
-        profession: "Instalaţii sanitare",
-        rating: 4.9,
-        distance: "1.2 km",
-        avatarColor: colors.primary.teal,
+    try {
+      const response = await providersApi.getProviders({ highRated: true, perPage: 5, sort: 'rating' });
+      const profiles = response.data || response;
+      const mapped = (Array.isArray(profiles) ? profiles : []).map((p) => ({
+        ...mapProviderToCard(p),
         isRecommended: true,
-      },
-      {
-        id: "2",
-        name: "Andrei P.",
-        profession: "Reparaţii",
-        rating: 4.8,
-        distance: "2.5 km",
-        avatarColor: colors.accent.amber,
-        isRecommended: false,
-      },
-    ]);
+      }));
+      setRecommendedProviders(mapped);
+    } catch (error) {
+      console.error("Error loading recommended providers:", error);
+      setRecommendedProviders([]);
+    }
   };
 
   const loadPopularProfessionals = async () => {
-    // Mock data matching the screenshot
-    setPopularProfessionals([
-      {
-        id: "3",
-        name: "Alexandru D.",
-        profession: "Electrician",
-        rating: 4.9,
-        reviewCount: 127,
-        distance: "1.5 km",
-        price: "de la 80 lei",
-        avatarColor: colors.primary.teal,
-        isOnline: true,
-      },
-      {
-        id: "4",
-        name: "Elena M.",
-        profession: "Coafor",
-        rating: 5,
-        reviewCount: 89,
-        distance: "0.9 km",
-        price: "de la 50 lei",
-        avatarColor: colors.accent.purple,
-        isOnline: true,
-      },
-      {
-        id: "5",
-        name: "Mihai R.",
-        profession: "Instalator",
-        rating: 4.8,
-        reviewCount: 156,
-        distance: "2.1 km",
-        price: "de la 100 lei",
-        avatarColor: colors.accent.amber,
-        isOnline: true,
-      },
-    ]);
+    try {
+      const response = await providersApi.getProviders({ perPage: 6, sort: 'completed_tasks' });
+      const profiles = response.data || response;
+      const mapped = (Array.isArray(profiles) ? profiles : []).map(mapProviderToCard);
+      setPopularProfessionals(mapped);
+    } catch (error) {
+      console.error("Error loading popular professionals:", error);
+      setPopularProfessionals([]);
+    }
   };
 
   const loadReviews = async () => {
@@ -192,7 +258,7 @@ export default function HomePage() {
   const handleCategoryPress = (category) => {
     router.push({
       pathname: "/(tabs)/providers",
-      params: { category: category.name },
+      params: { category: category.name, categoryId: category.id },
     });
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   useColorScheme,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -25,6 +26,7 @@ import {
   Inter_400Regular,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
+import { providersApi } from "@/api";
 
 export default function SearchPage() {
   const insets = useSafeAreaInsets();
@@ -52,100 +54,58 @@ export default function SearchPage() {
     Inter_700Bold,
   });
 
+  const debounceRef = useRef(null);
+
   useEffect(() => {
-    if (searchQuery || selectedCategory) {
-      searchProviders();
+    if (!searchQuery && !selectedCategory) {
+      setProviders([]);
+      return;
     }
+
+    // Debounce API calls by 300ms
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      searchProviders();
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [searchQuery, selectedCategory]);
 
   const searchProviders = async () => {
     setLoading(true);
+    try {
+      const params = {};
+      if (searchQuery) params.q = searchQuery;
+      if (selectedCategory) params.q = params.q ? `${params.q} ${selectedCategory}` : selectedCategory;
 
-    // Mock search results - will be replaced with API call
-    const mockResults = [
-      {
-        id: "1",
-        name: "Mike's Plumbing",
-        category: "Plumbing",
-        rating: 4.8,
-        reviewCount: 127,
-        image: "https://via.placeholder.com/80",
-        distance: "0.5 miles",
-        responseTime: "< 1 hour",
-        pricing: "$50-150/hour",
-        availability: "Available now",
-        description:
-          "Emergency plumbing repairs, installations, and maintenance.",
-        verified: true,
-      },
-      {
-        id: "2",
-        name: "Elite Auto Repair",
-        category: "Car Repair",
-        rating: 4.9,
-        reviewCount: 89,
-        image: "https://via.placeholder.com/80",
-        distance: "1.2 miles",
-        responseTime: "< 30 mins",
-        pricing: "$80-200/hour",
-        availability: "Available today",
-        description: "Full-service auto repair and maintenance.",
-        verified: true,
-      },
-      {
-        id: "3",
-        name: "Bella Hair Studio",
-        category: "Hair Salon",
-        rating: 4.7,
-        reviewCount: 156,
-        image: "https://via.placeholder.com/80",
-        distance: "0.8 miles",
-        responseTime: "< 2 hours",
-        pricing: "$40-120/service",
-        availability: "Available tomorrow",
-        description: "Premium hair styling, cuts, and color services.",
-        verified: false,
-      },
-      {
-        id: "4",
-        name: "Quick Fix Electrical",
-        category: "Electrical",
-        rating: 4.6,
-        reviewCount: 73,
-        image: "https://via.placeholder.com/80",
-        distance: "2.1 miles",
-        responseTime: "< 45 mins",
-        pricing: "$75-180/hour",
-        availability: "Available now",
-        description: "Licensed electrical repairs and installations.",
-        verified: true,
-      },
-    ];
+      const response = await providersApi.getProviders(params);
+      const profiles = response.data || response;
 
-    // Filter results based on search query and category
-    let filteredResults = mockResults;
+      // Map API response to search card format
+      const mapped = (Array.isArray(profiles) ? profiles : []).map((p) => ({
+        id: p.id,
+        name: p.user_name || `${p.user_first_name || ''} ${p.user_last_name || ''}`.trim(),
+        category: p.categories?.[0]?.name || '',
+        rating: p.avg_rating || 0,
+        reviewCount: p.total_tasks_completed || 0,
+        image: p.user_avatar_url,
+        distance: '',
+        responseTime: p.response_rate ? `${p.response_rate}% rata raspuns` : '',
+        pricing: p.hourly_rate ? `${Math.round(p.hourly_rate)} lei/ora` : '',
+        availability: p.is_active ? 'Disponibil' : 'Indisponibil',
+        description: p.bio || '',
+        verified: p.is_verified || false,
+      }));
 
-    if (selectedCategory) {
-      filteredResults = filteredResults.filter((provider) =>
-        provider.category
-          .toLowerCase()
-          .includes(selectedCategory.toLowerCase()),
-      );
+      setProviders(mapped);
+    } catch (error) {
+      console.error("Error searching providers:", error);
+      setProviders([]);
+    } finally {
+      setLoading(false);
     }
-
-    if (searchQuery) {
-      filteredResults = filteredResults.filter(
-        (provider) =>
-          provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          provider.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          provider.description
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()),
-      );
-    }
-
-    setProviders(filteredResults);
-    setLoading(false);
   };
 
   const handleProviderPress = (provider) => {
@@ -374,8 +334,13 @@ export default function SearchPage() {
         </View>
 
         {/* Provider Results */}
+        {loading && (
+          <View style={{ paddingVertical: 40, alignItems: "center" }}>
+            <ActivityIndicator size="large" color="#14B8A6" />
+          </View>
+        )}
         <View style={{ paddingHorizontal: 16 }}>
-          {providers.map((provider) => (
+          {!loading && providers.map((provider) => (
             <TouchableOpacity
               key={provider.id}
               onPress={() => handleProviderPress(provider)}
@@ -579,7 +544,7 @@ export default function SearchPage() {
             </TouchableOpacity>
           ))}
 
-          {providers.length === 0 && !loading && (
+          {!loading && providers.length === 0 && (
             <View
               style={{
                 alignItems: "center",

@@ -6,7 +6,7 @@ export const authKey = `${process.env.EXPO_PUBLIC_PROJECT_GROUP_ID}-jwt`;
 /**
  * This store manages the authentication state of the application.
  */
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
   isReady: false,
   auth: null,
   setAuth: (auth) => {
@@ -16,6 +16,14 @@ export const useAuthStore = create((set) => ({
       SecureStore.deleteItemAsync(authKey);
     }
     set({ auth });
+  },
+  updateUser: (userData) => {
+    const currentAuth = get().auth;
+    if (currentAuth) {
+      const newAuth = { ...currentAuth, user: userData };
+      SecureStore.setItemAsync(authKey, JSON.stringify(newAuth));
+      set({ auth: newAuth });
+    }
   },
 }));
 
