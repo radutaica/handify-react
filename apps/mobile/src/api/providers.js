@@ -17,6 +17,9 @@ export const providersApi = {
     if (params.minRating) queryParams.append('min_rating', params.minRating);
     if (params.minRate) queryParams.append('min_rate', params.minRate);
     if (params.maxRate) queryParams.append('max_rate', params.maxRate);
+    if (params.lat) queryParams.append('lat', params.lat);
+    if (params.lng) queryParams.append('lng', params.lng);
+    if (params.radius) queryParams.append('radius', params.radius);
     if (params.sort) queryParams.append('sort', params.sort);
     if (params.page) queryParams.append('page', params.page);
     if (params.perPage) queryParams.append('per_page', params.perPage);

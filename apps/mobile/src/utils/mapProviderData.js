@@ -31,6 +31,7 @@ export function mapProviderToCard(profile) {
     avatarUrl: profile.user_avatar_url,
     isRecommended: profile.avg_rating >= 4.5,
     isVerified: profile.is_verified,
+    distanceKm: profile.distance_km || null,
   };
 }
 

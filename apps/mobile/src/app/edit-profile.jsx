@@ -14,6 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 import { useCurrentUser } from "@/utils/auth";
 import { profileApi } from "@/api";
+import { useUpload } from "@/utils/useUpload";
 import { ChevronLeft, Camera } from "lucide-react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -37,6 +38,8 @@ export default function EditProfileScreen() {
     user?.profile_image_url || ""
   );
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [upload] = useUpload();
 
   const [fontsLoaded] = useFonts({
     Inter_600SemiBold,
@@ -53,7 +56,28 @@ export default function EditProfileScreen() {
     });
 
     if (!result.canceled && result.assets?.[0]) {
-      setProfileImageUrl(result.assets[0].uri);
+      const asset = result.assets[0];
+      setUploadingImage(true);
+      try {
+        const uploadResult = await upload({
+          reactNativeAsset: {
+            uri: asset.uri,
+            name: asset.fileName || asset.uri.split("/").pop(),
+            mimeType: asset.mimeType || "image/jpeg",
+          },
+        });
+        if (uploadResult?.url) {
+          setProfileImageUrl(uploadResult.url);
+        } else {
+          // Fallback to local URI if upload fails
+          setProfileImageUrl(asset.uri);
+        }
+      } catch (err) {
+        console.error("Image upload error:", err);
+        setProfileImageUrl(asset.uri);
+      } finally {
+        setUploadingImage(false);
+      }
     }
   };
 
@@ -230,7 +254,7 @@ export default function EditProfileScreen() {
               marginTop: 12,
             }}
           >
-            Apasa pentru a schimba fotografia
+            {uploadingImage ? "Se incarca..." : "Apasa pentru a schimba fotografia"}
           </Text>
         </View>
 

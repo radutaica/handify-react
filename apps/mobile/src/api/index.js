@@ -16,3 +16,4 @@ export { default as portfolioApi } from './portfolio';
 export { default as availabilityApi } from './availability';
 export { default as directRequestsApi } from './directRequests';
 export { default as disputesApi } from './disputes';
+export { default as oauthApi } from './oauth';

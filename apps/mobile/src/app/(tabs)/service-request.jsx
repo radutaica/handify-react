@@ -19,9 +19,17 @@ import {
   CheckCircle,
   ChevronDown,
   Plus,
+  MapPin,
+  Camera,
+  X,
 } from "lucide-react-native";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import KeyboardAvoidingAnimatedView from "@/components/KeyboardAvoidingAnimatedView";
+import LocationPicker from "@/components/LocationPicker";
 import { useCurrentUser } from "@/utils/auth";
+import { geocodeAddress } from "@/utils/location";
+import { useUpload } from "@/utils/useUpload";
 import { categoriesApi, addressesApi, tasksApi } from "@/api";
 import {
   useFonts,
@@ -36,6 +44,10 @@ export default function ServiceRequestPage() {
   const isDark = colorScheme === "dark";
   const { user } = useCurrentUser();
   const [loading, setLoading] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [coordinates, setCoordinates] = useState({ latitude: null, longitude: null });
+  const [images, setImages] = useState([]);
+  const [upload, { loading: uploading }] = useUpload();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -129,6 +141,53 @@ export default function ServiceRequestPage() {
     setShowAddressPicker(false);
   };
 
+  const handleLocationConfirm = (location) => {
+    setShowLocationPicker(false);
+    setIsNewAddress(true);
+    setSelectedAddress(null);
+    setFormData((prev) => ({ ...prev, addressId: "" }));
+    setNewAddress({
+      street_address: location.streetAddress || "",
+      city: location.city || "",
+      county: location.county || "",
+      postal_code: location.postalCode || "",
+    });
+    setCoordinates({
+      latitude: location.latitude,
+      longitude: location.longitude,
+    });
+  };
+
+  const handleAddImages = async () => {
+    if (images.length >= 5) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: 5 - images.length,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.length > 0) {
+      for (const asset of result.assets) {
+        const uploadResult = await upload({
+          reactNativeAsset: {
+            uri: asset.uri,
+            name: asset.fileName || asset.uri.split("/").pop(),
+            mimeType: asset.mimeType || "image/jpeg",
+          },
+        });
+        if (uploadResult?.url) {
+          setImages((prev) => [...prev, uploadResult.url]);
+        }
+      }
+    }
+  };
+
+  const removeImage = (index) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -180,6 +239,23 @@ export default function ServiceRequestPage() {
           ...newAddress,
           country: "RO",
         };
+
+        // Include coordinates if available (from map picker)
+        if (coordinates.latitude && coordinates.longitude) {
+          addressData.latitude = coordinates.latitude;
+          addressData.longitude = coordinates.longitude;
+        } else {
+          // Attempt forward geocoding for manually typed addresses
+          const fullAddr = [newAddress.street_address, newAddress.city, newAddress.county, "Romania"]
+            .filter(Boolean)
+            .join(", ");
+          const geo = await geocodeAddress(fullAddr);
+          if (geo) {
+            addressData.latitude = geo.latitude;
+            addressData.longitude = geo.longitude;
+          }
+        }
+
         const addressResult = await addressesApi.createAddress(addressData);
         const created = addressResult.data || addressResult;
         addressId = created.id;
@@ -197,6 +273,7 @@ export default function ServiceRequestPage() {
         budget_max: formData.budgetMax ? parseFloat(formData.budgetMax) : null,
         booking_type: formData.bookingType,
         urgency: formData.urgency,
+        images: images.length > 0 ? images : undefined,
       };
 
       await tasksApi.createTask(taskData);
@@ -542,6 +619,30 @@ export default function ServiceRequestPage() {
                     Adauga adresa noua
                   </Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setShowLocationPicker(true)}
+                  style={{
+                    ...inputStyle,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    borderWidth: 1,
+                    borderColor: "#14B8A6",
+                    marginTop: 8,
+                  }}
+                >
+                  <MapPin size={18} color="#14B8A6" />
+                  <Text
+                    style={{
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 14,
+                      color: "#14B8A6",
+                      marginLeft: 8,
+                    }}
+                  >
+                    Alege pe harta
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View>
@@ -594,23 +695,40 @@ export default function ServiceRequestPage() {
                   />
                 </View>
 
-                <TouchableOpacity
-                  onPress={() => {
-                    setIsNewAddress(false);
-                    setShowAddressPicker(true);
-                  }}
-                  style={{ marginTop: 8 }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Inter_400Regular",
-                      fontSize: 14,
-                      color: "#3B82F6",
+                <View style={{ flexDirection: "row", marginTop: 8, gap: 16, alignItems: "center" }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setIsNewAddress(false);
+                      setShowAddressPicker(true);
                     }}
                   >
-                    Foloseste o adresa existenta
-                  </Text>
-                </TouchableOpacity>
+                    <Text
+                      style={{
+                        fontFamily: "Inter_400Regular",
+                        fontSize: 14,
+                        color: "#3B82F6",
+                      }}
+                    >
+                      Foloseste o adresa existenta
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => setShowLocationPicker(true)}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                  >
+                    <MapPin size={14} color="#14B8A6" />
+                    <Text
+                      style={{
+                        fontFamily: "Inter_400Regular",
+                        fontSize: 14,
+                        color: "#14B8A6",
+                      }}
+                    >
+                      Alege pe harta
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
                 {(errors.street_address || errors.city) && (
                   <Text style={{ color: "#EF4444", fontSize: 12, marginTop: 4 }}>
@@ -783,6 +901,80 @@ export default function ServiceRequestPage() {
             </View>
           </View>
 
+          {/* Images */}
+          <View style={{ marginBottom: 20 }}>
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 16,
+                color: isDark ? "#FFFFFF" : "#000000",
+                marginBottom: 8,
+              }}
+            >
+              Poze (optional)
+            </Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {images.map((uri, index) => (
+                <View key={index} style={{ position: "relative" }}>
+                  <Image
+                    source={{ uri }}
+                    style={{ width: 80, height: 80, borderRadius: 8 }}
+                    contentFit="cover"
+                  />
+                  <TouchableOpacity
+                    onPress={() => removeImage(index)}
+                    style={{
+                      position: "absolute",
+                      top: -6,
+                      right: -6,
+                      width: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      backgroundColor: "#EF4444",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <X size={12} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {images.length < 5 && (
+                <TouchableOpacity
+                  onPress={handleAddImages}
+                  disabled={uploading}
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: isDark ? "#2D2D2D" : "#E5E7EB",
+                    borderStyle: "dashed",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
+                  }}
+                >
+                  {uploading ? (
+                    <ActivityIndicator size="small" color="#14B8A6" />
+                  ) : (
+                    <Camera size={24} color={isDark ? "#B3B3B3" : "#6B7280"} />
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+            <Text
+              style={{
+                fontFamily: "Inter_400Regular",
+                fontSize: 12,
+                color: isDark ? "#8F8F8F" : "#9CA3AF",
+                marginTop: 4,
+              }}
+            >
+              Maxim 5 poze
+            </Text>
+          </View>
+
           {/* Urgency */}
           <View style={{ marginBottom: 32 }}>
             <Text
@@ -883,6 +1075,12 @@ export default function ServiceRequestPage() {
           </TouchableOpacity>
         </View>
       </View>
+
+      <LocationPicker
+        visible={showLocationPicker}
+        onConfirm={handleLocationConfirm}
+        onCancel={() => setShowLocationPicker(false)}
+      />
     </KeyboardAvoidingAnimatedView>
   );
 }

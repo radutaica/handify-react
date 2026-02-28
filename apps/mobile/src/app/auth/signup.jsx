@@ -17,6 +17,8 @@ import { router } from "expo-router";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuthStore } from "@/utils/auth/store";
+import { useGoogleAuth } from "@/utils/auth/useGoogleAuth";
+import { useAppleAuth } from "@/utils/auth/useAppleAuth";
 import KeyboardAvoidingAnimatedView from "@/components/KeyboardAvoidingAnimatedView";
 import { colors } from "@/theme/colors";
 import AppIcon from "@/components/AppIcon";
@@ -30,6 +32,8 @@ export default function SignUpScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const { setAuth } = useAuthStore();
+  const googleAuth = useGoogleAuth();
+  const appleAuth = useAppleAuth();
 
   const focusedPadding = 12;
   const paddingAnimation = useRef(
@@ -259,20 +263,50 @@ export default function SignUpScreen() {
             {/* Social Sign Up Buttons */}
             <View style={styles.socialButtons}>
               {/* Google Button */}
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                <View style={styles.googleIcon}>
-                  <Text style={styles.googleIconText}>G</Text>
-                </View>
+              <TouchableOpacity
+                style={styles.socialButton}
+                activeOpacity={0.8}
+                onPress={async () => {
+                  await googleAuth.signIn();
+                  if (useAuthStore.getState().auth) {
+                    router.replace("/onboarding");
+                  }
+                }}
+                disabled={googleAuth.loading}
+              >
+                {googleAuth.loading ? (
+                  <ActivityIndicator size="small" color={colors.text.primary} style={{ marginRight: 12 }} />
+                ) : (
+                  <View style={styles.googleIcon}>
+                    <Text style={styles.googleIconText}>G</Text>
+                  </View>
+                )}
                 <Text style={styles.socialButtonText}>Continue with Google</Text>
               </TouchableOpacity>
 
               {/* Apple Button */}
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                <View style={styles.appleIcon}>
-                  <Text style={styles.appleIconText}>🍎</Text>
-                </View>
-                <Text style={[styles.socialButtonText, styles.socialButtonText]}>Continue with Apple</Text>
-              </TouchableOpacity>
+              {appleAuth.isAvailable && (
+                <TouchableOpacity
+                  style={styles.socialButton}
+                  activeOpacity={0.8}
+                  onPress={async () => {
+                    const result = await appleAuth.signIn();
+                    if (result.success) {
+                      router.replace("/onboarding");
+                    }
+                  }}
+                  disabled={appleAuth.loading}
+                >
+                  {appleAuth.loading ? (
+                    <ActivityIndicator size="small" color={colors.text.primary} style={{ marginRight: 12 }} />
+                  ) : (
+                    <View style={styles.appleIcon}>
+                      <Text style={styles.appleIconText}>🍎</Text>
+                    </View>
+                  )}
+                  <Text style={styles.socialButtonText}>Continue with Apple</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Sign In Link */}

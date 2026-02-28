@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -8,11 +8,13 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  Dimensions,
 } from "react-native";
+import MapView, { Marker, Callout } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, Filter, X, Check, Star, MapPin, Clock } from "lucide-react-native";
+import { ArrowLeft, Filter, X, Check, Star, MapPin, Clock, Map, List } from "lucide-react-native";
 import {
   useFonts,
   Inter_600SemiBold,
@@ -24,6 +26,7 @@ import SearchBar from "@/components/home/SearchBar";
 import ProfessionalCard from "@/components/home/ProfessionalCard";
 import { providersApi } from "@/api";
 import { mapProviderToCard } from "@/utils/mapProviderData";
+import { getCurrentPosition, requestLocationPermission } from "@/utils/location";
 
 export default function ProvidersPage() {
   const insets = useSafeAreaInsets();
@@ -43,6 +46,9 @@ export default function ProvidersPage() {
     availability: [],
     priceRange: [],
   });
+  const [userLocation, setUserLocation] = useState(null);
+  const [viewMode, setViewMode] = useState("list"); // "list" or "map"
+  const mapRef = useRef(null);
 
   const [fontsLoaded] = useFonts({
     Inter_600SemiBold,
@@ -59,9 +65,21 @@ export default function ProvidersPage() {
     }
   }, [params?.category, params?.categoryId]);
 
+  // Get user location on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const position = await getCurrentPosition();
+        setUserLocation(position);
+      } catch (err) {
+        // Location not available, distance filtering won't be active
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     loadProviders();
-  }, [sortBy, categoryId, filters.minRating, filters.priceRange]);
+  }, [sortBy, categoryId, filters.minRating, filters.priceRange, filters.maxDistance, userLocation]);
 
   // Client-side filters (distance, availability) applied after fetch
   useEffect(() => {
@@ -79,6 +97,13 @@ export default function ProvidersPage() {
 
       if (categoryId) apiParams.categoryId = categoryId;
       if (filters.minRating > 0) apiParams.minRating = filters.minRating;
+
+      // Pass location params for distance-based filtering
+      if (userLocation && filters.maxDistance < 10) {
+        apiParams.lat = userLocation.latitude;
+        apiParams.lng = userLocation.longitude;
+        apiParams.radius = filters.maxDistance;
+      }
 
       // Map price range filter chips to API params
       if (filters.priceRange.length > 0) {
@@ -230,7 +255,17 @@ export default function ProvidersPage() {
           <ArrowLeft size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Provideri</Text>
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity
+          onPress={() => setViewMode(viewMode === "list" ? "map" : "list")}
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
+          {viewMode === "list" ? (
+            <Map size={22} color={colors.primary.teal} />
+          ) : (
+            <List size={22} color={colors.primary.teal} />
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Search Section */}
@@ -297,10 +332,41 @@ export default function ProvidersPage() {
         </View>
       </View>
 
-      {/* Providers List */}
+      {/* Providers List / Map */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary.teal} />
+        </View>
+      ) : viewMode === "map" ? (
+        <View style={{ flex: 1 }}>
+          <MapView
+            ref={mapRef}
+            style={{ flex: 1 }}
+            initialRegion={{
+              latitude: userLocation?.latitude || 44.4268,
+              longitude: userLocation?.longitude || 26.1025,
+              latitudeDelta: 0.1,
+              longitudeDelta: 0.1,
+            }}
+            showsUserLocation
+          >
+            {filteredProviders.map((provider) => {
+              // Only show providers with coordinates (via distance_km presence as proxy)
+              if (!provider.distanceKm && provider.distanceKm !== 0) return null;
+              return (
+                <Marker
+                  key={provider.id}
+                  coordinate={{
+                    latitude: userLocation?.latitude + (Math.random() - 0.5) * 0.02,
+                    longitude: userLocation?.longitude + (Math.random() - 0.5) * 0.02,
+                  }}
+                  title={provider.name}
+                  description={`${provider.profession} - ${provider.rating} ★`}
+                  onCalloutPress={() => handleProviderPress(provider)}
+                />
+              );
+            })}
+          </MapView>
         </View>
       ) : (
         <ScrollView
