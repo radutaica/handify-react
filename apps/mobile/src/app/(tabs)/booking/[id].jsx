@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCurrentUser } from "@/utils/auth";
-import { tasksApi, bidsApi } from "@/api";
+import { tasksApi, bidsApi, reviewsApi } from "@/api";
 import {
   TASK_STATUS_CONFIG,
   URGENCY_CONFIG,
@@ -275,6 +275,7 @@ export default function BookingDetail() {
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
+  const [hasReviewed, setHasReviewed] = useState(false);
 
   const [fontsLoaded] = useFonts({
     Inter_600SemiBold,
@@ -289,6 +290,19 @@ export default function BookingDetail() {
       const response = await tasksApi.getTask(id);
       const taskData = response.data?.task || response.data || response;
       setTask(taskData);
+
+      // Check if user already reviewed this task
+      if (taskData.status === "completed" && user?.id) {
+        try {
+          const reviewsResponse = await reviewsApi.getReviews({ task_id: id, reviewer_id: user.id });
+          const reviews = reviewsResponse.data?.reviews || reviewsResponse.data || reviewsResponse || [];
+          if (Array.isArray(reviews) && reviews.length > 0) {
+            setHasReviewed(true);
+          }
+        } catch (e) {
+          // Ignore — just show the review button
+        }
+      }
 
       // Load bids if task is open + open_bidding
       if (taskData.status === "open" && taskData.booking_type === "open_bidding") {
@@ -871,11 +885,19 @@ export default function BookingDetail() {
             </TouchableOpacity>
           )}
 
-          {showReview && (
+          {showReview && !hasReviewed && (
             <TouchableOpacity
               onPress={() => {
-                // TODO: Navigate to review screen
-                Alert.alert("In curand", "Functia de recenzie va fi disponibila in curand.");
+                router.push({
+                  pathname: `/review/${task.id}`,
+                  params: {
+                    revieweeId: task.assigned_tasker?.id || "",
+                    revieweeName: task.assigned_tasker
+                      ? `${task.assigned_tasker.first_name} ${task.assigned_tasker.last_name}`
+                      : "",
+                    revieweeImage: task.assigned_tasker?.profile_image_url || "",
+                  },
+                });
               }}
               style={{
                 backgroundColor: "#10B981",
@@ -898,6 +920,31 @@ export default function BookingDetail() {
                 Lasa o recenzie
               </Text>
             </TouchableOpacity>
+          )}
+
+          {showReview && hasReviewed && (
+            <View
+              style={{
+                backgroundColor: isDark ? "#1E1E1E" : "#F0FDF4",
+                borderRadius: 12,
+                paddingVertical: 16,
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <CheckCircle size={20} color="#16A34A" />
+              <Text
+                style={{
+                  fontFamily: "Inter_600SemiBold",
+                  fontSize: 16,
+                  color: "#16A34A",
+                  marginLeft: 8,
+                }}
+              >
+                Recenzia a fost trimisa
+              </Text>
+            </View>
           )}
 
           {showRepublish && (

@@ -4,14 +4,16 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  TextInput,
   useColorScheme,
   ActivityIndicator,
   Alert,
+  Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { router, useLocalSearchParams } from "expo-router";
-import { tasksApi } from "@/api";
+import { tasksApi, disputesApi } from "@/api";
 import {
   ChevronLeft,
   Calendar,
@@ -136,6 +138,8 @@ export default function TaskDetail() {
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [showDisputeInput, setShowDisputeInput] = useState(false);
+  const [disputeReason, setDisputeReason] = useState("");
 
   const [fontsLoaded] = useFonts({
     Inter_600SemiBold,
@@ -212,6 +216,28 @@ export default function TaskDetail() {
         },
       ]
     );
+  };
+
+  const handleSubmitDispute = async () => {
+    if (!disputeReason.trim()) {
+      Alert.alert("Eroare", "Te rugam sa descrii problema.");
+      return;
+    }
+    setUpdating(true);
+    try {
+      await disputesApi.createDispute({
+        task_id: id,
+        reason: disputeReason.trim(),
+      });
+      setShowDisputeInput(false);
+      setDisputeReason("");
+      setTask((prev) => ({ ...prev, status: "disputed" }));
+      Alert.alert("Succes", "Disputa a fost inregistrata.");
+    } catch (err) {
+      Alert.alert("Eroare", "Nu am putut inregistra disputa.");
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -574,40 +600,182 @@ export default function TaskDetail() {
           )}
 
           {canComplete && (
-            <TouchableOpacity
-              onPress={handleCompleteTask}
-              disabled={updating}
-              style={{
-                backgroundColor: "#10B981",
-                borderRadius: 12,
-                paddingVertical: 16,
-                flexDirection: "row",
-                justifyContent: "center",
-                alignItems: "center",
-                opacity: updating ? 0.7 : 1,
-              }}
-            >
-              {updating ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <>
-                  <CheckCircle size={20} color="white" />
-                  <Text
-                    style={{
-                      fontFamily: "Inter_600SemiBold",
-                      fontSize: 16,
-                      color: "white",
-                      marginLeft: 8,
-                    }}
-                  >
-                    Mark Complete
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                onPress={handleCompleteTask}
+                disabled={updating}
+                style={{
+                  backgroundColor: "#10B981",
+                  borderRadius: 12,
+                  paddingVertical: 16,
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  opacity: updating ? 0.7 : 1,
+                }}
+              >
+                {updating ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <CheckCircle size={20} color="white" />
+                    <Text
+                      style={{
+                        fontFamily: "Inter_600SemiBold",
+                        fontSize: 16,
+                        color: "white",
+                        marginLeft: 8,
+                      }}
+                    >
+                      Mark Complete
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setShowDisputeInput(true)}
+                style={{
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                  marginTop: 8,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: "Inter_600SemiBold",
+                    fontSize: 14,
+                    color: "#EF4444",
+                  }}
+                >
+                  Raporteaza o problema
+                </Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
       )}
+
+      {/* Dispute Modal */}
+      <Modal
+        visible={showDisputeInput}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDisputeInput(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: "rgba(0,0,0,0.5)",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: isDark ? "#1E1E1E" : "#FFFFFF",
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: 24,
+              paddingBottom: insets.bottom + 24,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Inter_700Bold",
+                fontSize: 18,
+                color: isDark ? "#FFFFFF" : "#111827",
+                marginBottom: 4,
+              }}
+            >
+              Raporteaza o problema
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Inter_400Regular",
+                fontSize: 14,
+                color: isDark ? "#8F8F8F" : "#6B7280",
+                marginBottom: 20,
+              }}
+            >
+              Descrie problema intampinata cu aceasta sarcina.
+            </Text>
+
+            <TextInput
+              value={disputeReason}
+              onChangeText={setDisputeReason}
+              placeholder="Descrie problema..."
+              placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
+              multiline
+              style={{
+                fontFamily: "Inter_400Regular",
+                fontSize: 15,
+                color: isDark ? "#FFFFFF" : "#111827",
+                backgroundColor: isDark ? "#2D2D2D" : "#F9FAFB",
+                borderRadius: 12,
+                padding: 16,
+                minHeight: 120,
+                textAlignVertical: "top",
+                borderWidth: 1,
+                borderColor: isDark ? "#3D3D3D" : "#E5E7EB",
+                marginBottom: 20,
+              }}
+            />
+
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowDisputeInput(false);
+                  setDisputeReason("");
+                }}
+                style={{
+                  flex: 1,
+                  borderRadius: 12,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6",
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: "Inter_600SemiBold",
+                    fontSize: 15,
+                    color: isDark ? "#FFFFFF" : "#374151",
+                  }}
+                >
+                  Anuleaza
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSubmitDispute}
+                disabled={updating}
+                style={{
+                  flex: 1,
+                  borderRadius: 12,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  backgroundColor: "#EF4444",
+                  opacity: updating ? 0.6 : 1,
+                }}
+              >
+                {updating ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text
+                    style={{
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 15,
+                      color: "#FFFFFF",
+                    }}
+                  >
+                    Trimite
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

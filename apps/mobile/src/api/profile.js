@@ -27,8 +27,8 @@ export const profileApi = {
   /**
    * Update profile
    */
-  updateProfile: async (profileData) => {
-    return apiClient.patch('/api/profile', profileData);
+  updateProfile: async (data) => {
+    return apiClient.patch('/api/v1/me', data);
   },
 
   /**

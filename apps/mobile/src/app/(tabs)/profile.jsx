@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -26,6 +26,7 @@ import {
   ChevronRight,
   Briefcase,
   ClipboardList,
+  Calendar,
 } from "lucide-react-native";
 import { Image } from "expo-image";
 import {
@@ -52,55 +53,34 @@ export default function ProfilePage() {
     loading,
     isRefetching,
   } = useCurrentUser();
-  console.log("taskerProfile", taskerProfile);
-  const [stats, setStats] = useState(null);
-
   const [fontsLoaded] = useFonts({
     Inter_600SemiBold,
     Inter_400Regular,
     Inter_700Bold,
   });
 
-  useEffect(() => {
-    if (isReady && isAuthenticated) {
-      loadUserStats();
-    }
-  }, [isReady, isAuthenticated]);
-
-  const loadUserStats = async () => {
-    // Mock stats data - will be replaced with actual API call
-    const mockStats = {
-      totalBookings: 12,
-      completedBookings: 10,
-      averageRating: 4.8,
-      totalSpent: 1250,
-      favoriteProviders: 3,
-    };
-    setStats(mockStats);
-  };
-
   const handleEditProfile = () => {
-    router.push("/onboarding");
+    router.push("/edit-profile");
   };
 
   const handleSettings = () => {
-    Alert.alert("Coming Soon", "Settings page is coming soon!");
+    router.push("/settings");
   };
 
   const handlePaymentMethods = () => {
-    Alert.alert("Coming Soon", "Payment methods page is coming soon!");
+    Alert.alert("In curand", "Metodele de plata vor fi disponibile in curand!");
   };
 
   const handleNotifications = () => {
-    Alert.alert("Coming Soon", "Notifications page is coming soon!");
+    Alert.alert("In curand", "Setarile de notificari vor fi disponibile in curand!");
   };
 
   const handlePrivacy = () => {
-    Alert.alert("Coming Soon", "Privacy & Security page is coming soon!");
+    router.push("/privacy");
   };
 
   const handleHelp = () => {
-    Alert.alert("Coming Soon", "Help & Support page is coming soon!");
+    router.push("/help");
   };
 
   const handleLogout = () => {
@@ -508,7 +488,7 @@ export default function ProfilePage() {
                       marginBottom: 8,
                     }}
                   >
-                    Add your information to get the most out of ServiceHub
+                    Add your information to get the most out of Handify
                   </Text>
                   <TouchableOpacity
                     onPress={handleEditProfile}
@@ -561,7 +541,7 @@ export default function ProfilePage() {
                         color: isDark ? "#B3B3B3" : "#6B7280",
                       }}
                     >
-                      Tasks Done
+                      Sarcini
                     </Text>
                   </View>
 
@@ -600,7 +580,7 @@ export default function ProfilePage() {
                         color: "#16A34A",
                       }}
                     >
-                      ${taskerProfile.hourly_rate || 0}
+                      {taskerProfile.hourly_rate || 0} lei/h
                     </Text>
                     <Text
                       style={{
@@ -609,148 +589,110 @@ export default function ProfilePage() {
                         color: isDark ? "#B3B3B3" : "#6B7280",
                       }}
                     >
-                      Hourly Rate
+                      Tarif orar
                     </Text>
                   </View>
                 </View>
-              ) : (
-                stats &&
-                user.first_name && (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-around",
-                      paddingTop: 16,
-                      borderTopWidth: 1,
-                      borderTopColor: isDark ? "#2D2D2D" : "#E5E7EB",
-                    }}
-                  >
-                    <View style={{ alignItems: "center" }}>
-                      <Text
-                        style={{
-                          fontFamily: "Inter_700Bold",
-                          fontSize: 20,
-                          color: isDark ? "#FFFFFF" : "#000000",
-                        }}
-                      >
-                        {stats.totalBookings}
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: "Inter_400Regular",
-                          fontSize: 12,
-                          color: isDark ? "#B3B3B3" : "#6B7280",
-                        }}
-                      >
-                        Bookings
-                      </Text>
-                    </View>
-
-                    <View style={{ alignItems: "center" }}>
-                      <View
-                        style={{ flexDirection: "row", alignItems: "center" }}
-                      >
-                        <Star size={16} color="#F59E0B" />
-                        <Text
-                          style={{
-                            fontFamily: "Inter_700Bold",
-                            fontSize: 20,
-                            color: isDark ? "#FFFFFF" : "#000000",
-                            marginLeft: 4,
-                          }}
-                        >
-                          {stats.averageRating}
-                        </Text>
-                      </View>
-                      <Text
-                        style={{
-                          fontFamily: "Inter_400Regular",
-                          fontSize: 12,
-                          color: isDark ? "#B3B3B3" : "#6B7280",
-                        }}
-                      >
-                        Avg Rating
-                      </Text>
-                    </View>
-
-                    <View style={{ alignItems: "center" }}>
-                      <Text
-                        style={{
-                          fontFamily: "Inter_700Bold",
-                          fontSize: 20,
-                          color: "#16A34A",
-                        }}
-                      >
-                        ${stats.totalSpent}
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: "Inter_400Regular",
-                          fontSize: 12,
-                          color: isDark ? "#B3B3B3" : "#6B7280",
-                        }}
-                      >
-                        Total Spent
-                      </Text>
-                    </View>
-                  </View>
-                )
-              )}
+              ) : null}
             </View>
           )}
 
-          {/* Manage Tasks - Show when hasTaskerProfile */}
+          {/* Tasker Dashboard - Show when hasTaskerProfile */}
           {user && hasTaskerProfile && (
-            <TouchableOpacity
-              onPress={() => router.push("/tasker-tasks")}
+            <View
               style={{
-                backgroundColor: isDark ? "#1E293B" : "#EFF6FF",
                 margin: 16,
                 marginTop: 0,
-                borderRadius: 16,
-                padding: 20,
-                borderWidth: 1,
-                borderColor: isDark ? "#3B82F6" : "#BFDBFE",
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    backgroundColor: "#3B82F6",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    marginRight: 16,
-                  }}
-                >
-                  <ClipboardList size={24} color="white" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
+              <Text
+                style={{
+                  fontFamily: "Inter_600SemiBold",
+                  fontSize: 13,
+                  color: isDark ? "#8F8F8F" : "#6B7280",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                  marginBottom: 12,
+                  paddingHorizontal: 4,
+                }}
+              >
+                Panou prestator
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 12,
+                }}
+              >
+                {[
+                  {
+                    icon: ClipboardList,
+                    label: "Taskurile mele",
+                    route: "/tasker-tasks",
+                    color: "#3B82F6",
+                    bg: isDark ? "#1E293B" : "#EFF6FF",
+                  },
+                  {
+                    icon: Briefcase,
+                    label: "Portofoliu",
+                    route: "/tasker-portfolio",
+                    color: "#8B5CF6",
+                    bg: isDark ? "#2D1B69" : "#F5F3FF",
+                  },
+                  {
+                    icon: Calendar,
+                    label: "Disponibilitate",
+                    route: "/tasker-availability",
+                    color: "#10B981",
+                    bg: isDark ? "#1A3A2F" : "#ECFDF5",
+                  },
+                  {
+                    icon: Bell,
+                    label: "Cereri directe",
+                    route: "/tasker-direct-requests",
+                    color: "#F59E0B",
+                    bg: isDark ? "#3D2E0E" : "#FFFBEB",
+                  },
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item.route}
+                    onPress={() => router.push(item.route)}
                     style={{
-                      fontFamily: "Inter_600SemiBold",
-                      fontSize: 16,
-                      color: isDark ? "#FFFFFF" : "#1E40AF",
-                      marginBottom: 4,
+                      width: "48%",
+                      backgroundColor: item.bg,
+                      borderRadius: 14,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: isDark ? item.color + "40" : item.color + "30",
                     }}
                   >
-                    Manage Tasks
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: "Inter_400Regular",
-                      fontSize: 14,
-                      color: isDark ? "#93C5FD" : "#3B82F6",
-                    }}
-                  >
-                    View and manage your assigned tasks
-                  </Text>
-                </View>
-                <ChevronRight size={20} color="#3B82F6" />
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                        backgroundColor: item.color,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        marginBottom: 10,
+                      }}
+                    >
+                      <item.icon size={20} color="white" />
+                    </View>
+                    <Text
+                      style={{
+                        fontFamily: "Inter_600SemiBold",
+                        fontSize: 14,
+                        color: isDark ? "#FFFFFF" : "#111827",
+                      }}
+                    >
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            </TouchableOpacity>
+            </View>
           )}
 
           {/* Become a Tasker CTA - Show when !hasTaskerProfile */}
@@ -927,7 +869,7 @@ export default function ProfilePage() {
                 textAlign: "center",
               }}
             >
-              ServiceHub v1.0.0
+              Handify v1.0.0
             </Text>
             <Text
               style={{
