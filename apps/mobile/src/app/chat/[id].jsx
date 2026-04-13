@@ -38,7 +38,7 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { id, contextId, contextType, receiverId, receiverName, receiverImage } =
+  const { id, contextId, contextType, receiverId, receiverName, receiverImage, lastActiveAt } =
     useLocalSearchParams();
   const { user } = useCurrentUser();
 
@@ -355,9 +355,10 @@ export default function ChatScreen() {
     return prevDate !== currDate;
   };
 
-  const isOnline =
-    receiverImage &&
-    false; // Will derive from last_active_at when available in params
+  // Derive online status from the lastActiveAt param passed by conversations list
+  const isOnline = lastActiveAt
+    ? Date.now() - new Date(lastActiveAt).getTime() < 5 * 60 * 1000
+    : false;
 
   const renderMessage = ({ item: message, index }) => {
     const isOutgoing = message.sender?.id === user?.id;

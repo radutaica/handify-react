@@ -67,13 +67,13 @@ function TaskCard({ task, isDark, onPress }) {
 
   const formatPrice = () => {
     if (task.fixed_price) {
-      return `$${parseFloat(task.fixed_price).toFixed(2)} (fixed)`;
+      return `${parseFloat(task.fixed_price).toFixed(0)} lei (pret fix)`;
     }
     if (task.budget_min && task.budget_max) {
-      return `$${task.budget_min} - $${task.budget_max}`;
+      return `${task.budget_min} - ${task.budget_max} lei`;
     }
     if (task.budget_min) {
-      return `From $${task.budget_min}`;
+      return `de la ${task.budget_min} lei`;
     }
     return null;
   };

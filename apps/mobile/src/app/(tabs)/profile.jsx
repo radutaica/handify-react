@@ -27,6 +27,7 @@ import {
   Briefcase,
   ClipboardList,
   Calendar,
+  Search,
 } from "lucide-react-native";
 import { Image } from "expo-image";
 import {
@@ -84,10 +85,10 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert("Deconectare", "Esti sigur ca vrei sa te deconectezi?", [
+      { text: "Anuleaza", style: "cancel" },
       {
-        text: "Sign Out",
+        text: "Deconecteaza-te",
         style: "destructive",
         onPress: async () => {
           try {
@@ -95,7 +96,7 @@ export default function ProfilePage() {
             router.replace("/welcome");
           } catch (error) {
             console.error("Logout error:", error);
-            Alert.alert("Error", "Failed to sign out. Please try again.");
+            Alert.alert("Eroare", "Nu am putut efectua deconectarea. Incearca din nou.");
           }
         },
       },
@@ -105,32 +106,32 @@ export default function ProfilePage() {
   const menuItems = [
     {
       icon: Settings,
-      title: "Settings",
-      subtitle: "App preferences and account settings",
+      title: "Setari",
+      subtitle: "Preferinte aplicatie si cont",
       onPress: handleSettings,
     },
     {
       icon: CreditCard,
-      title: "Payment Methods",
-      subtitle: "Manage cards and payment options",
+      title: "Metode de plata",
+      subtitle: "Gestioneaza carduri si optiuni de plata",
       onPress: handlePaymentMethods,
     },
     {
       icon: Bell,
-      title: "Notifications",
-      subtitle: "Push notifications and email alerts",
+      title: "Notificari",
+      subtitle: "Notificari push si alerte email",
       onPress: handleNotifications,
     },
     {
       icon: Shield,
-      title: "Privacy & Security",
-      subtitle: "Data privacy and account security",
+      title: "Confidentialitate",
+      subtitle: "Securitatea datelor si a contului",
       onPress: handlePrivacy,
     },
     {
       icon: HelpCircle,
-      title: "Help & Support",
-      subtitle: "Get help and contact support",
+      title: "Ajutor",
+      subtitle: "Obtine ajutor si contacteaza suportul",
       onPress: handleHelp,
     },
   ];
@@ -558,7 +559,7 @@ export default function ProfilePage() {
                           marginLeft: 4,
                         }}
                       >
-                        {taskerProfile.avg_rating?.toFixed(1) || "N/A"}
+                        {parseFloat(taskerProfile.avg_rating)?.toFixed(1) || "N/A"}
                       </Text>
                     </View>
                     <Text
@@ -626,6 +627,13 @@ export default function ProfilePage() {
                 }}
               >
                 {[
+                  {
+                    icon: Search,
+                    label: "Lucrari disponibile",
+                    route: "/tasker-browse-tasks",
+                    color: "#14B8A6",
+                    bg: isDark ? "#1A3A36" : "#F0FDFA",
+                  },
                   {
                     icon: ClipboardList,
                     label: "Taskurile mele",
@@ -732,7 +740,7 @@ export default function ProfilePage() {
                       marginBottom: 4,
                     }}
                   >
-                    Become a Service Provider
+                    Devino prestator de servicii
                   </Text>
                   <Text
                     style={{
@@ -741,7 +749,7 @@ export default function ProfilePage() {
                       color: isDark ? "#A7F3D0" : "#047857",
                     }}
                   >
-                    Start earning by offering your services
+                    Incepe sa castigi oferind serviciile tale
                   </Text>
                 </View>
                 <ChevronRight size={20} color="#10B981" />
@@ -838,7 +846,7 @@ export default function ProfilePage() {
                     marginBottom: 2,
                   }}
                 >
-                  Sign Out
+                  Deconectare
                 </Text>
                 <Text
                   style={{
@@ -847,7 +855,7 @@ export default function ProfilePage() {
                     color: isDark ? "#B85C5C" : "#DC2626",
                   }}
                 >
-                  Sign out of your account
+                  Deconecteaza-te din contul tau
                 </Text>
               </View>
             </TouchableOpacity>
@@ -880,7 +888,7 @@ export default function ProfilePage() {
                 marginTop: 4,
               }}
             >
-              Connecting you with local service providers
+              Te conectam cu profesionisti locali
             </Text>
           </View>
         </ScrollView>

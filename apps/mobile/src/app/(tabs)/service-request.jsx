@@ -8,6 +8,8 @@ import {
   useColorScheme,
   Alert,
   ActivityIndicator,
+  Modal,
+  Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -22,6 +24,7 @@ import {
   MapPin,
   Camera,
   X,
+  Calendar,
 } from "lucide-react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -81,6 +84,9 @@ export default function ServiceRequestPage() {
   const [isNewAddress, setIsNewAddress] = useState(false);
 
   const [errors, setErrors] = useState({});
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   const [fontsLoaded] = useFonts({
     Inter_600SemiBold,
@@ -415,7 +421,7 @@ export default function ServiceRequestPage() {
               </TouchableOpacity>
             ) : (
               <View>
-                {categories.slice(0, 6).map((cat) => (
+                {(showAllCategories ? categories : categories.slice(0, 6)).map((cat) => (
                   <TouchableOpacity
                     key={cat.id}
                     onPress={() => handleCategorySelect(cat)}
@@ -438,6 +444,25 @@ export default function ServiceRequestPage() {
                     </Text>
                   </TouchableOpacity>
                 ))}
+                {!showAllCategories && categories.length > 6 && (
+                  <TouchableOpacity
+                    onPress={() => setShowAllCategories(true)}
+                    style={{
+                      paddingVertical: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "Inter_600SemiBold",
+                        fontSize: 14,
+                        color: "#3B82F6",
+                      }}
+                    >
+                      Arata toate ({categories.length})
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
             {errors.category && (
@@ -757,24 +782,36 @@ export default function ServiceRequestPage() {
               Data si ora (optional)
             </Text>
             <View style={{ flexDirection: "row", gap: 8 }}>
-              <TextInput
-                style={{ ...inputStyle, flex: 1 }}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
-                value={formData.taskDate}
-                onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, taskDate: text }))
-                }
-              />
-              <TextInput
-                style={{ ...inputStyle, flex: 1 }}
-                placeholder="HH:MM"
-                placeholderTextColor={isDark ? "#8F8F8F" : "#9CA3AF"}
-                value={formData.taskTime}
-                onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, taskTime: text }))
-                }
-              />
+              <TouchableOpacity
+                style={{ ...inputStyle, flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text
+                  style={{
+                    fontFamily: "Inter_400Regular",
+                    fontSize: 16,
+                    color: formData.taskDate ? (isDark ? "#FFFFFF" : "#000000") : (isDark ? "#8F8F8F" : "#9CA3AF"),
+                  }}
+                >
+                  {formData.taskDate || "Alege data"}
+                </Text>
+                <Calendar size={18} color={isDark ? "#8F8F8F" : "#9CA3AF"} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ ...inputStyle, flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Text
+                  style={{
+                    fontFamily: "Inter_400Regular",
+                    fontSize: 16,
+                    color: formData.taskTime ? (isDark ? "#FFFFFF" : "#000000") : (isDark ? "#8F8F8F" : "#9CA3AF"),
+                  }}
+                >
+                  {formData.taskTime || "Alege ora"}
+                </Text>
+                <Clock size={18} color={isDark ? "#8F8F8F" : "#9CA3AF"} />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -1081,6 +1118,123 @@ export default function ServiceRequestPage() {
         onConfirm={handleLocationConfirm}
         onCancel={() => setShowLocationPicker(false)}
       />
+
+      {/* Date Picker Modal */}
+      <Modal visible={showDatePicker} transparent animationType="slide">
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}
+          onPress={() => setShowDatePicker(false)}
+        >
+          <Pressable
+            style={{
+              backgroundColor: isDark ? "#1E1E1E" : "#FFFFFF",
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: 20,
+              paddingBottom: insets.bottom + 20,
+            }}
+          >
+            <Text style={{ fontFamily: "Inter_700Bold", fontSize: 18, color: isDark ? "#FFFFFF" : "#000000", marginBottom: 16 }}>
+              Alege data
+            </Text>
+            <ScrollView horizontal={false} style={{ maxHeight: 300 }}>
+              {(() => {
+                const dates = [];
+                const today = new Date();
+                for (let i = 0; i < 30; i++) {
+                  const d = new Date(today);
+                  d.setDate(today.getDate() + i);
+                  const dateStr = d.toISOString().split("T")[0];
+                  const dayNames = ["Dum", "Lun", "Mar", "Mie", "Joi", "Vin", "Sam"];
+                  const monthNames = ["ian", "feb", "mar", "apr", "mai", "iun", "iul", "aug", "sep", "oct", "noi", "dec"];
+                  const label = i === 0 ? "Azi" : i === 1 ? "Maine" : `${dayNames[d.getDay()]}, ${d.getDate()} ${monthNames[d.getMonth()]}`;
+                  dates.push({ dateStr, label });
+                }
+                return dates.map(({ dateStr, label }) => (
+                  <TouchableOpacity
+                    key={dateStr}
+                    onPress={() => {
+                      setFormData((prev) => ({ ...prev, taskDate: dateStr }));
+                      setShowDatePicker(false);
+                    }}
+                    style={{
+                      paddingVertical: 14,
+                      paddingHorizontal: 16,
+                      borderRadius: 10,
+                      marginBottom: 4,
+                      backgroundColor: formData.taskDate === dateStr ? "#10B98120" : "transparent",
+                      borderWidth: formData.taskDate === dateStr ? 1 : 0,
+                      borderColor: "#10B981",
+                    }}
+                  >
+                    <Text style={{
+                      fontFamily: formData.taskDate === dateStr ? "Inter_600SemiBold" : "Inter_400Regular",
+                      fontSize: 16,
+                      color: formData.taskDate === dateStr ? "#10B981" : (isDark ? "#FFFFFF" : "#000000"),
+                    }}>
+                      {label}
+                    </Text>
+                    <Text style={{ fontFamily: "Inter_400Regular", fontSize: 12, color: isDark ? "#8F8F8F" : "#9CA3AF", marginTop: 2 }}>
+                      {dateStr}
+                    </Text>
+                  </TouchableOpacity>
+                ));
+              })()}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Time Picker Modal */}
+      <Modal visible={showTimePicker} transparent animationType="slide">
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}
+          onPress={() => setShowTimePicker(false)}
+        >
+          <Pressable
+            style={{
+              backgroundColor: isDark ? "#1E1E1E" : "#FFFFFF",
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: 20,
+              paddingBottom: insets.bottom + 20,
+            }}
+          >
+            <Text style={{ fontFamily: "Inter_700Bold", fontSize: 18, color: isDark ? "#FFFFFF" : "#000000", marginBottom: 16 }}>
+              Alege ora
+            </Text>
+            <ScrollView style={{ maxHeight: 300 }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"].map((time) => (
+                  <TouchableOpacity
+                    key={time}
+                    onPress={() => {
+                      setFormData((prev) => ({ ...prev, taskTime: time }));
+                      setShowTimePicker(false);
+                    }}
+                    style={{
+                      paddingVertical: 12,
+                      paddingHorizontal: 20,
+                      borderRadius: 10,
+                      backgroundColor: formData.taskTime === time ? "#10B98120" : (isDark ? "#2D2D2D" : "#F3F4F6"),
+                      borderWidth: formData.taskTime === time ? 1 : 0,
+                      borderColor: "#10B981",
+                    }}
+                  >
+                    <Text style={{
+                      fontFamily: formData.taskTime === time ? "Inter_600SemiBold" : "Inter_400Regular",
+                      fontSize: 16,
+                      color: formData.taskTime === time ? "#10B981" : (isDark ? "#FFFFFF" : "#000000"),
+                    }}>
+                      {time}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </KeyboardAvoidingAnimatedView>
   );
 }

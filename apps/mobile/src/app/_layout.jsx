@@ -54,6 +54,7 @@ export default function RootLayout() {
           <Stack.Screen name="tasker-portfolio" />
           <Stack.Screen name="tasker-availability" />
           <Stack.Screen name="tasker-direct-requests" />
+          <Stack.Screen name="tasker-browse-tasks" />
           <Stack.Screen name="auth" options={{ presentation: "modal" }} />
         </Stack>
       </GestureHandlerRootView>

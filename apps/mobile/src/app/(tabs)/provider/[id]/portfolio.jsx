@@ -337,11 +337,20 @@ function FullscreenPhotoViewer({ images, initialIndex, onClose, onShare }) {
               },
             ]}
           >
-            <View style={styles.viewerImagePlaceholder}>
-              <Text style={styles.viewerImagePlaceholderText}>
-                {currentImage?.service || "Image"}
-              </Text>
-            </View>
+            {currentImage?.image ? (
+              <Image
+                source={{ uri: currentImage.image }}
+                style={{ width: "90%", height: "90%", borderRadius: 12 }}
+                contentFit="contain"
+                transition={200}
+              />
+            ) : (
+              <View style={styles.viewerImagePlaceholder}>
+                <Text style={styles.viewerImagePlaceholderText}>
+                  {currentImage?.service || "Image"}
+                </Text>
+              </View>
+            )}
           </Animated.View>
 
           {/* Navigation Arrows */}

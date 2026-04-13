@@ -6,6 +6,7 @@ import {
   ScrollView,
   useColorScheme,
   Linking,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -180,12 +181,14 @@ export default function SettingsScreen() {
           title="Limba"
           value="Romana"
           isDark={isDark}
+          onPress={() => Alert.alert("Limba", "Momentan aplicatia este disponibila doar in romana. Alte limbi vor fi adaugate in curand.")}
         />
         <SettingsItem
           icon={Moon}
           title="Mod intunecat"
           value="Automat (sistem)"
           isDark={isDark}
+          onPress={() => Alert.alert("Mod intunecat", "Aplicatia urmeaza automat setarea de sistem. Aceasta optiune va fi configurabila in curand.")}
         />
 
         <SectionTitle title="Despre" isDark={isDark} />

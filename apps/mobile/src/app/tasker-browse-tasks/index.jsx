@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
+  TextInput,
   useColorScheme,
   ActivityIndicator,
   RefreshControl,
@@ -13,16 +13,22 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
+import { useCurrentUser } from "@/utils/auth";
+import { tasksApi, categoriesApi } from "@/api";
 import {
+  formatRelativeDate,
+  URGENCY_CONFIG,
+} from "@/utils/mapTaskData";
+import {
+  ChevronLeft,
   Search,
-  Filter,
+  SlidersHorizontal,
   MapPin,
   Clock,
-  Tag,
   Users,
-  Briefcase,
+  Tag,
   X,
-  SlidersHorizontal,
+  Briefcase,
 } from "lucide-react-native";
 import {
   useFonts,
@@ -30,12 +36,6 @@ import {
   Inter_400Regular,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import { tasksApi, categoriesApi } from "@/api";
-import { useCurrentUser } from "@/utils/auth";
-import {
-  formatRelativeDate,
-  URGENCY_CONFIG,
-} from "@/utils/mapTaskData";
 
 const URGENCY_FILTERS = [
   { key: "all", label: "Toate" },
@@ -57,7 +57,7 @@ function formatPrice(task) {
   return null;
 }
 
-function OpenTaskCard({ task, isDark, onPress, isTasker }) {
+function OpenTaskCard({ task, isDark, onPress }) {
   const urgencyConfig = URGENCY_CONFIG[task.urgency] || URGENCY_CONFIG.medium;
   const price = formatPrice(task);
   const location = task.address?.city || task.address?.full_address || null;
@@ -206,7 +206,7 @@ function OpenTaskCard({ task, isDark, onPress, isTasker }) {
         </View>
       </View>
 
-      {/* Action Button */}
+      {/* Submit Bid Button */}
       <TouchableOpacity
         onPress={onPress}
         style={{
@@ -224,18 +224,18 @@ function OpenTaskCard({ task, isDark, onPress, isTasker }) {
             color: "#FFFFFF",
           }}
         >
-          {isTasker ? "Depune Oferta" : "Vezi detalii"}
+          Depune Oferta
         </Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
 }
 
-export default function SearchPage() {
+export default function TaskerBrowseTasksList() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { hasTaskerProfile } = useCurrentUser();
+  const { user } = useCurrentUser();
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -360,7 +360,6 @@ export default function SearchPage() {
     setActiveUrgency("all");
     setBudgetMin("");
     setBudgetMax("");
-    setSearchQuery("");
     setLoading(true);
   };
 
@@ -386,7 +385,6 @@ export default function SearchPage() {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          justifyContent: "space-between",
           paddingHorizontal: 16,
           paddingVertical: 12,
           backgroundColor: isDark ? "#121212" : "#FFFFFF",
@@ -394,15 +392,30 @@ export default function SearchPage() {
           borderBottomColor: isDark ? "#2D2D2D" : "#E5E7EB",
         }}
       >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <ChevronLeft size={24} color={isDark ? "#FFFFFF" : "#000000"} />
+        </TouchableOpacity>
+
         <Text
           style={{
             fontFamily: "Inter_700Bold",
-            fontSize: 24,
+            fontSize: 20,
             color: isDark ? "#FFFFFF" : "#111827",
+            marginLeft: 16,
             flex: 1,
           }}
         >
-          Lucrari postate
+          Lucrari Disponibile
         </Text>
 
         <TouchableOpacity
@@ -479,7 +492,7 @@ export default function SearchPage() {
       </View>
 
       {/* Active Filter Chips */}
-      {(hasActiveFilters || searchQuery) && (
+      {hasActiveFilters && (
         <View
           style={{
             backgroundColor: isDark ? "#121212" : "#FFFFFF",
@@ -493,39 +506,6 @@ export default function SearchPage() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16 }}
           >
-            {searchQuery && (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: isDark ? "#3B82F6" : "#DBEAFE",
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 20,
-                  marginRight: 8,
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: "Inter_400Regular",
-                    fontSize: 13,
-                    color: isDark ? "#FFFFFF" : "#1D4ED8",
-                    marginRight: 6,
-                  }}
-                >
-                  "{searchQuery}"
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    setSearchQuery("");
-                    setLoading(true);
-                  }}
-                >
-                  <X size={14} color={isDark ? "#FFFFFF" : "#1D4ED8"} />
-                </TouchableOpacity>
-              </View>
-            )}
-
             {selectedCategoryName && (
               <View
                 style={{
@@ -707,7 +687,7 @@ export default function SearchPage() {
               marginBottom: 8,
             }}
           >
-            Nicio lucrare gasita
+            Nicio lucrare disponibila
           </Text>
           <Text
             style={{
@@ -718,7 +698,7 @@ export default function SearchPage() {
               lineHeight: 20,
             }}
           >
-            Cauta lucrari disponibile sau ajusteaza filtrele
+            Nu exista lucrari deschise momentan
           </Text>
         </View>
       ) : (
@@ -726,7 +706,7 @@ export default function SearchPage() {
           style={{ flex: 1 }}
           contentContainerStyle={{
             padding: 16,
-            paddingBottom: insets.bottom + 20,
+            paddingBottom: insets.bottom + 16,
           }}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -737,51 +717,21 @@ export default function SearchPage() {
             />
           }
         >
-          {/* Results Header */}
-          <View
+          <Text
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
+              fontFamily: "Inter_400Regular",
+              fontSize: 13,
+              color: isDark ? "#8F8F8F" : "#9CA3AF",
               marginBottom: 12,
             }}
           >
-            <Text
-              style={{
-                fontFamily: "Inter_400Regular",
-                fontSize: 13,
-                color: isDark ? "#8F8F8F" : "#9CA3AF",
-              }}
-            >
-              {tasks.length} {tasks.length === 1 ? "lucrare gasita" : "lucrari gasite"}
-            </Text>
-
-            <TouchableOpacity
-              onPress={() => {
-                const sorted = [...tasks].sort(
-                  (a, b) => new Date(b.created_at) - new Date(a.created_at)
-                );
-                setTasks(sorted);
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: "Inter_400Regular",
-                  fontSize: 14,
-                  color: "#3B82F6",
-                }}
-              >
-                Cele mai recente
-              </Text>
-            </TouchableOpacity>
-          </View>
-
+            {tasks.length} {tasks.length === 1 ? "lucrare gasita" : "lucrari gasite"}
+          </Text>
           {tasks.map((task) => (
             <OpenTaskCard
               key={task.id}
               task={task}
               isDark={isDark}
-              isTasker={hasTaskerProfile}
               onPress={() => handleTaskPress(task)}
             />
           ))}

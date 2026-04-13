@@ -256,13 +256,13 @@ export default function TaskDetail() {
   const formatPrice = () => {
     if (!task) return null;
     if (task.fixed_price) {
-      return `$${parseFloat(task.fixed_price).toFixed(2)} (fixed price)`;
+      return `${parseFloat(task.fixed_price).toFixed(0)} lei (pret fix)`;
     }
     if (task.budget_min && task.budget_max) {
-      return `$${task.budget_min} - $${task.budget_max} (budget range)`;
+      return `${task.budget_min} - ${task.budget_max} lei`;
     }
     if (task.budget_min) {
-      return `From $${task.budget_min}`;
+      return `de la ${task.budget_min} lei`;
     }
     return null;
   };
@@ -278,8 +278,10 @@ export default function TaskDetail() {
 
   const getAddress = () => {
     if (!task?.address) return null;
-    const { street, city, state, zip_code } = task.address;
-    const parts = [street, city, state, zip_code].filter(Boolean);
+    // Support both address formats: full_address (customer view) and street/city (tasker view)
+    if (task.address.full_address) return task.address.full_address;
+    const { street_address, street, city, county, state, zip_code, postal_code } = task.address;
+    const parts = [street_address || street, city, county || state, postal_code || zip_code].filter(Boolean);
     return parts.length > 0 ? parts.join(", ") : null;
   };
 
@@ -512,7 +514,7 @@ export default function TaskDetail() {
             <InfoRow
               icon={Clock}
               label="Estimated Duration"
-              value={`${task.duration_hours} hour${task.duration_hours > 1 ? "s" : ""}`}
+              value={`${task.duration_hours} ${task.duration_hours > 1 ? "ore" : "ora"}`}
               isDark={isDark}
             />
           )}

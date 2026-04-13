@@ -94,11 +94,11 @@ export default function ReviewSubmit() {
 
       // Navigate to success or back to profile
       Alert.alert(
-        "Welcome, Provider!",
-        "Your service provider profile has been created successfully. You can now start receiving service requests!",
+        "Bine ai venit!",
+        "Profilul tau de prestator a fost creat cu succes. Acum poti incepe sa primesti cereri de servicii!",
         [
           {
-            text: "Get Started",
+            text: "Incepe",
             onPress: () => {
               router.dismissAll();
               router.replace("/(tabs)/profile");
@@ -109,8 +109,8 @@ export default function ReviewSubmit() {
     } catch (error) {
       console.error("Error creating tasker profile:", error);
       Alert.alert(
-        "Error",
-        error.message || "Failed to create profile. Please try again."
+        "Eroare",
+        error.message || "Nu am putut crea profilul. Incearca din nou."
       );
     } finally {
       setSubmitting(false);
@@ -185,7 +185,7 @@ export default function ReviewSubmit() {
               marginLeft: 4,
             }}
           >
-            Edit
+            Editeaza
           </Text>
         </TouchableOpacity>
       </View>
@@ -234,7 +234,7 @@ export default function ReviewSubmit() {
               color: isDark ? "#8F8F8F" : "#6B7280",
             }}
           >
-            Step 3 of 3
+            Pasul 3 din 3
           </Text>
           <Text
             style={{
@@ -243,7 +243,7 @@ export default function ReviewSubmit() {
               color: isDark ? "#FFFFFF" : "#111827",
             }}
           >
-            Review & Submit
+            Revizuire si Trimitere
           </Text>
         </View>
       </View>
@@ -292,12 +292,12 @@ export default function ReviewSubmit() {
               lineHeight: 22,
             }}
           >
-            Review your information before submitting. You can edit any section
-            if needed.
+            Revizuieste informatiile tale inainte de trimitere. Poti edita orice
+            sectiune daca este necesar.
           </Text>
 
           {/* Categories Section */}
-          <SectionCard title="Service Categories" onEdit={handleEditCategories}>
+          <SectionCard title="Categorii servicii" onEdit={handleEditCategories}>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {categories.map((cat) => (
                 <View
@@ -327,7 +327,7 @@ export default function ReviewSubmit() {
           </SectionCard>
 
           {/* Bio Section */}
-          <SectionCard title="About You" onEdit={handleEditDetails}>
+          <SectionCard title="Despre tine" onEdit={handleEditDetails}>
             <Text
               style={{
                 fontFamily: "Inter_400Regular",
@@ -341,7 +341,7 @@ export default function ReviewSubmit() {
           </SectionCard>
 
           {/* Rate & Experience Section */}
-          <SectionCard title="Rate & Experience" onEdit={handleEditDetails}>
+          <SectionCard title="Tarif si Experienta" onEdit={handleEditDetails}>
             <View style={{ flexDirection: "row", gap: 16 }}>
               <View
                 style={{
@@ -371,7 +371,7 @@ export default function ReviewSubmit() {
                       color: isDark ? "#FFFFFF" : "#111827",
                     }}
                   >
-                    ${hourlyRate}
+                    {hourlyRate} lei
                   </Text>
                   <Text
                     style={{
@@ -380,7 +380,7 @@ export default function ReviewSubmit() {
                       color: isDark ? "#8F8F8F" : "#6B7280",
                     }}
                   >
-                    per hour
+                    pe ora
                   </Text>
                 </View>
               </View>
@@ -422,7 +422,7 @@ export default function ReviewSubmit() {
                       color: isDark ? "#8F8F8F" : "#6B7280",
                     }}
                   >
-                    years exp.
+                    ani experienta
                   </Text>
                 </View>
               </View>
@@ -431,7 +431,7 @@ export default function ReviewSubmit() {
 
           {/* Skills Section */}
           {skills.length > 0 && (
-            <SectionCard title="Skills" onEdit={handleEditDetails}>
+            <SectionCard title="Abilitati" onEdit={handleEditDetails}>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 {skills.map((skill, index) => (
                   <View
@@ -482,7 +482,7 @@ export default function ReviewSubmit() {
                   marginBottom: 4,
                 }}
               >
-                Almost there!
+                Aproape gata!
               </Text>
               <Text
                 style={{
@@ -492,8 +492,8 @@ export default function ReviewSubmit() {
                   lineHeight: 20,
                 }}
               >
-                After submitting, your profile will be active and you can start
-                receiving service requests from customers.
+                Dupa trimitere, profilul tau va fi activ si vei putea incepe
+                sa primesti cereri de servicii de la clienti.
               </Text>
             </View>
           </View>
@@ -540,7 +540,7 @@ export default function ReviewSubmit() {
                   color: "white",
                 }}
               >
-                Create My Profile
+                Creeaza profilul
               </Text>
             </>
           )}

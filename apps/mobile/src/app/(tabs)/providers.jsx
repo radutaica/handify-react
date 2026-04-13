@@ -144,11 +144,30 @@ export default function ProvidersPage() {
       );
     }
 
-    // Client-side distance filter (no backend support yet)
-    // distance is not available from API, so skip if no distance field
+    // Client-side distance filter as fallback when backend doesn't handle it.
+    // Backend filtering via lat/lng/radius params is preferred (see loadProviders),
+    // but this ensures filtering still works when distance_km is returned.
+    if (filters.maxDistance < 10 && userLocation) {
+      filtered = filtered.filter((provider) => {
+        if (provider.distanceKm == null) return true; // keep providers without distance data
+        return provider.distanceKm <= filters.maxDistance;
+      });
+    }
 
-    // Client-side availability filter (no backend support yet)
-    // isOnline is not available from API, so skip
+    // Client-side availability filter as fallback when backend doesn't support it.
+    // Backend filtering is preferred but not yet available for this field.
+    if (filters.availability.length > 0) {
+      filtered = filtered.filter((provider) => {
+        if (provider.isOnline == null) return true; // keep providers without availability data
+        if (filters.availability.includes("online") && !filters.availability.includes("offline")) {
+          return provider.isOnline === true;
+        }
+        if (filters.availability.includes("offline") && !filters.availability.includes("online")) {
+          return provider.isOnline === false;
+        }
+        return true; // both selected = show all
+      });
+    }
 
     // Client-side name sort
     if (sortBy === "name") {
@@ -351,14 +370,17 @@ export default function ProvidersPage() {
             showsUserLocation
           >
             {filteredProviders.map((provider) => {
-              // Only show providers with coordinates (via distance_km presence as proxy)
-              if (!provider.distanceKm && provider.distanceKm !== 0) return null;
+              // Use real provider coordinates when available, fall back to small random
+              // offset around user location only when no real coordinates exist
+              const lat = provider.latitude || provider.addressLatitude || (userLocation?.latitude + (Math.random() - 0.5) * 0.02);
+              const lng = provider.longitude || provider.addressLongitude || (userLocation?.longitude + (Math.random() - 0.5) * 0.02);
+              if (!lat || !lng) return null;
               return (
                 <Marker
                   key={provider.id}
                   coordinate={{
-                    latitude: userLocation?.latitude + (Math.random() - 0.5) * 0.02,
-                    longitude: userLocation?.longitude + (Math.random() - 0.5) * 0.02,
+                    latitude: lat,
+                    longitude: lng,
                   }}
                   title={provider.name}
                   description={`${provider.profession} - ${provider.rating} ★`}

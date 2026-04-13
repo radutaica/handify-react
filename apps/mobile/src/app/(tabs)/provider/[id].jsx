@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Linking,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -26,6 +28,7 @@ import {
   Inter_400Regular,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
+import { Image } from "expo-image";
 import { colors } from "@/theme/colors";
 import SectionHeader from "@/components/home/SectionHeader";
 import { providersApi } from "@/api";
@@ -90,7 +93,7 @@ export default function ProviderProfileScreen() {
           satisfiedPercentage,
           items: reviewItems.slice(0, 5),
         },
-        location: "Bucuresti",
+        location: detail.location || detail.address?.city || detail.city || "Romania",
         responseTime: detail.responseRate ? `Rata de raspuns: ${detail.responseRate}%` : "",
       });
     } catch (err) {
@@ -175,9 +178,17 @@ export default function ProviderProfileScreen() {
           <View style={styles.providerHeader}>
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {getInitials(provider.name)}
-                </Text>
+                {provider.profile_image_url ? (
+                  <Image
+                    source={{ uri: provider.profile_image_url }}
+                    style={{ width: 80, height: 80, borderRadius: 40 }}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <Text style={styles.avatarText}>
+                    {getInitials(provider.name)}
+                  </Text>
+                )}
               </View>
               {provider.isVerified && (
                 <View style={styles.verifiedBadge}>
@@ -238,6 +249,14 @@ export default function ProviderProfileScreen() {
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: "#D1FAE5" }]}
               activeOpacity={0.7}
+              onPress={() => {
+                const phone = provider.phone || provider.phone_number;
+                if (phone) {
+                  Linking.openURL(`tel:${phone}`);
+                } else {
+                  Alert.alert("Indisponibil", "Numarul de telefon nu este disponibil.");
+                }
+              }}
             >
               <Phone size={18} color={colors.primary.green} />
               <Text style={[styles.actionButtonText, { color: colors.primary.green }]}>
@@ -247,6 +266,7 @@ export default function ProviderProfileScreen() {
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: "#E9D5FF" }]}
               activeOpacity={0.7}
+              onPress={() => router.push(`/chat/provider-${provider.id}`)}
             >
               <MessageCircle size={18} color={colors.accent.purple} />
               <Text style={[styles.actionButtonText, { color: colors.accent.purple }]}>
@@ -302,9 +322,17 @@ export default function ProviderProfileScreen() {
           >
             {provider.portfolio.map((item) => (
               <View key={item.id} style={styles.portfolioItem}>
-                <View style={styles.portfolioPlaceholder}>
-                  <Text style={styles.portfolioPlaceholderText}>Image</Text>
-                </View>
+                {item.image_url || item.images?.[0] ? (
+                  <Image
+                    source={{ uri: item.image_url || item.images?.[0] }}
+                    style={{ width: '100%', height: '100%', borderRadius: 12 }}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View style={styles.portfolioPlaceholder}>
+                    <Text style={styles.portfolioPlaceholderText}>Image</Text>
+                  </View>
+                )}
               </View>
             ))}
           </ScrollView>
@@ -389,7 +417,7 @@ export default function ProviderProfileScreen() {
         <TouchableOpacity
           style={styles.floatingButton}
           activeOpacity={0.8}
-          onPress={() => console.log("Request offer")}
+          onPress={() => router.push(`/service-request?provider_id=${provider.id}&provider_name=${encodeURIComponent(provider.name)}`)}
         >
           <Text style={styles.floatingButtonText}>Solicita Oferta</Text>
         </TouchableOpacity>

@@ -63,6 +63,10 @@ import {
   Dog,
   UtensilsCrossed,
   Wine,
+  Briefcase,
+  Search,
+  ClipboardList,
+  ChevronRight,
 } from "lucide-react-native";
 import {
   useFonts,
@@ -79,11 +83,13 @@ import ReviewCard from "@/components/home/ReviewCard";
 import QuickActionButton from "@/components/home/QuickActionButton";
 import DiscountOfferCard from "@/components/home/DiscountOfferCard";
 import SectionHeader from "@/components/home/SectionHeader";
-import { providersApi } from "@/api";
+import { providersApi, reviewsApi } from "@/api";
 import { mapProviderToCard } from "@/utils/mapProviderData";
+import { useCurrentUser } from "@/utils/auth";
 
 export default function HomePage() {
   const insets = useSafeAreaInsets();
+  const { hasTaskerProfile } = useCurrentUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState([]);
   const [recommendedProviders, setRecommendedProviders] = useState([]);
@@ -227,25 +233,48 @@ export default function HomePage() {
   };
 
   const loadReviews = async () => {
-    // Mock data matching the screenshot
-    setReviews([
-      {
-        id: "1",
-        review: "Profesionist, punctual şi preţuri corecte. Recomand!",
-        authorName: "Ana P.",
-        service: "Instalatii",
-        rating: 5,
-        avatarColor: colors.primary.teal,
-      },
-      {
-        id: "2",
-        review: "A rezolvat problema rapid si eficient. Foarte multumit!",
-        authorName: "George M.",
-        service: "Electrician",
-        rating: 5,
-        avatarColor: colors.accent.purple,
-      },
-    ]);
+    try {
+      const response = await reviewsApi.getReviews({ public_only: true, per_page: 5 });
+      const data = response.data?.reviews || response.data || response || [];
+      const avatarColors = [colors.primary.teal, colors.accent.purple, colors.primary.blue, colors.accent.amber];
+      if (Array.isArray(data) && data.length > 0) {
+        setReviews(
+          data.map((r, i) => ({
+            id: r.id?.toString() || `${i}`,
+            review: r.comment || r.review || "",
+            authorName: r.reviewer
+              ? `${r.reviewer.first_name} ${r.reviewer.last_name?.[0] || ""}.`
+              : "Client",
+            service: r.task?.category?.name || "",
+            rating: r.rating || 5,
+            avatarColor: avatarColors[i % avatarColors.length],
+          }))
+        );
+      } else {
+        // Fallback to sample data if no reviews exist yet
+        setReviews([
+          {
+            id: "1",
+            review: "Profesionist, punctual si preturi corecte. Recomand!",
+            authorName: "Ana P.",
+            service: "Instalatii",
+            rating: 5,
+            avatarColor: colors.primary.teal,
+          },
+          {
+            id: "2",
+            review: "A rezolvat problema rapid si eficient. Foarte multumit!",
+            authorName: "George M.",
+            service: "Electrician",
+            rating: 5,
+            avatarColor: colors.accent.purple,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error loading reviews:", error);
+      setReviews([]);
+    }
   };
 
   const handleSearch = () => {
@@ -275,8 +304,10 @@ export default function HomePage() {
         router.push("/(tabs)/service-request");
         break;
       case "urgent-help":
-        // TODO: Implement urgent help
-        console.log("Urgent help");
+        router.push({
+          pathname: "/(tabs)/service-request",
+          params: { urgency: "high" },
+        });
         break;
       default:
         break;
@@ -303,9 +334,116 @@ export default function HomePage() {
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <AppIcon size={32} iconSize={18} borderRadius={8} />
-            <Text style={styles.logoText}>ServiceHub</Text>
+            <Text style={styles.logoText}>Handify</Text>
           </View>
         </View>
+
+        {/* Tasker Quick Access */}
+        {hasTaskerProfile && (
+          <View style={{ marginBottom: 20 }}>
+            <TouchableOpacity
+              onPress={() => router.push("/tasker-browse-tasks")}
+              style={{
+                backgroundColor: "#F0FDFA",
+                borderRadius: 16,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: "#99F6E4",
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  backgroundColor: "#14B8A6",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: 14,
+                }}
+              >
+                <Search size={24} color="white" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontFamily: "Inter_600SemiBold",
+                    fontSize: 16,
+                    color: "#0F766E",
+                    marginBottom: 2,
+                  }}
+                >
+                  Lucrari disponibile
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: "Inter_400Regular",
+                    fontSize: 13,
+                    color: "#5EEAD4",
+                  }}
+                >
+                  Cauta si depune oferte la sarcini noi
+                </Text>
+              </View>
+              <ChevronRight size={20} color="#14B8A6" />
+            </TouchableOpacity>
+
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
+              <TouchableOpacity
+                onPress={() => router.push("/tasker-tasks")}
+                style={{
+                  flex: 1,
+                  backgroundColor: "#EFF6FF",
+                  borderRadius: 12,
+                  padding: 14,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: "#BFDBFE",
+                }}
+              >
+                <ClipboardList size={18} color="#3B82F6" />
+                <Text
+                  style={{
+                    fontFamily: "Inter_600SemiBold",
+                    fontSize: 13,
+                    color: "#1D4ED8",
+                    marginLeft: 8,
+                  }}
+                >
+                  Taskurile mele
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push("/tasker-direct-requests")}
+                style={{
+                  flex: 1,
+                  backgroundColor: "#FFFBEB",
+                  borderRadius: 12,
+                  padding: 14,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: "#FDE68A",
+                }}
+              >
+                <Briefcase size={18} color="#F59E0B" />
+                <Text
+                  style={{
+                    fontFamily: "Inter_600SemiBold",
+                    fontSize: 13,
+                    color: "#B45309",
+                    marginLeft: 8,
+                  }}
+                >
+                  Cereri directe
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Search Section */}
         <View style={styles.searchSection}>
@@ -410,7 +548,7 @@ export default function HomePage() {
           <DiscountOfferCard
             title="20% reducere la prima comanda"
             subtitle="Pentru servicii de curatenie si renovari"
-            onPress={() => console.log("Discount offer pressed")}
+            onPress={() => router.push("/(tabs)/search")}
           />
         </View>
 

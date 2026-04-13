@@ -32,6 +32,13 @@ export function mapProviderToCard(profile) {
     isRecommended: profile.avg_rating >= 4.5,
     isVerified: profile.is_verified,
     distanceKm: profile.distance_km || null,
+    // Location coordinates for map markers
+    latitude: profile.latitude || profile.address?.latitude || profile.lat || null,
+    longitude: profile.longitude || profile.address?.longitude || profile.lng || null,
+    addressLatitude: profile.address?.latitude || null,
+    addressLongitude: profile.address?.longitude || null,
+    // Online status for availability filtering
+    isOnline: profile.is_online != null ? profile.is_online : (profile.is_active != null ? profile.is_active : null),
   };
 }
 

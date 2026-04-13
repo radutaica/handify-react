@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   FlatList,
+  ScrollView,
   useColorScheme,
   ActivityIndicator,
   RefreshControl,

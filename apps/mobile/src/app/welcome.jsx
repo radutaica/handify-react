@@ -51,12 +51,12 @@ export default function WelcomeScreen() {
         </View>
 
         {/* App Name */}
-        <Text style={styles.appName}>ServiceHub</Text>
+        <Text style={styles.appName}>Handify</Text>
 
         {/* Tagline */}
         <Text style={styles.tagline}>
-          Connect with trusted service providers in your area or offer your
-          professional skills
+          Gaseste profesionisti de incredere din zona ta sau ofera-ti
+          serviciile tale
         </Text>
 
         {/* Buttons */}
@@ -73,7 +73,7 @@ export default function WelcomeScreen() {
               end={{ x: 1, y: 0 }}
               style={styles.getStartedGradient}
             >
-              <Text style={styles.getStartedText}>Get Started</Text>
+              <Text style={styles.getStartedText}>Incepe acum</Text>
               <ArrowRight size={20} color={colors.ui.white} style={{ marginLeft: 8 }} />
             </LinearGradient>
           </TouchableOpacity>
@@ -84,7 +84,7 @@ export default function WelcomeScreen() {
             style={styles.signInButton}
             activeOpacity={0.8}
           >
-            <Text style={styles.signInText}>Sign In</Text>
+            <Text style={styles.signInText}>Conecteaza-te</Text>
           </TouchableOpacity>
         </View>
       </View>

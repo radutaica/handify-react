@@ -13,12 +13,6 @@ export const useUser = () => {
   const isTasker = user?.user_type === 'tasker' || user?.user_type === 'both';
   const taskerProfile = user?.tasker_profile || null;
 
-  // Debug logs for taskerProfile
-  console.log('[useUser] user:', user);
-  console.log('[useUser] user.tasker_profile:', user?.tasker_profile);
-  console.log('[useUser] taskerProfile:', taskerProfile);
-  console.log('[useUser] hasTaskerProfile:', !!taskerProfile);
-
   // Auto-refetch user data on mount to get latest tasker_profile
   useEffect(() => {
     const fetchLatestUser = async () => {

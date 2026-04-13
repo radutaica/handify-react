@@ -8,7 +8,7 @@ export const profileApi = {
    * Get profile
    */
   getProfile: async () => {
-    return apiClient.get('/api/profile/complete');
+    return apiClient.get('/api/v1/profile/complete');
   },
 
   /**
@@ -35,7 +35,7 @@ export const profileApi = {
    * Get user by ID
    */
   getUser: async (userId) => {
-    return apiClient.get(`/api/users/${userId}`);
+    return apiClient.get(`/api/v1/users/${userId}`);
   },
 
   /**

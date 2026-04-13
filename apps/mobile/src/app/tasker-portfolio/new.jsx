@@ -12,9 +12,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { portfolioApi, categoriesApi } from "@/api";
-import { ChevronLeft, Trash2, Plus, X } from "lucide-react-native";
+import { ChevronLeft, Plus, X } from "lucide-react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useUpload } from "@/utils/useUpload";
@@ -25,12 +25,10 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 
-export default function PortfolioItemScreen() {
+export default function NewPortfolioItemScreen() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { id } = useLocalSearchParams();
-  const isNew = id === "new";
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -38,7 +36,6 @@ export default function PortfolioItemScreen() {
   const [images, setImages] = useState([]);
   const [isFeatured, setIsFeatured] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
 
   const [upload, { loading: uploading }] = useUpload();
@@ -51,8 +48,7 @@ export default function PortfolioItemScreen() {
 
   useEffect(() => {
     loadCategories();
-    if (!isNew) loadItem();
-  }, [id]);
+  }, []);
 
   const loadCategories = async () => {
     try {
@@ -61,25 +57,6 @@ export default function PortfolioItemScreen() {
       setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error loading categories:", err);
-    }
-  };
-
-  const loadItem = async () => {
-    try {
-      const response = await portfolioApi.getPortfolioItems();
-      const items = response.data?.portfolio_items || response.data || response || [];
-      const item = (Array.isArray(items) ? items : []).find((i) => i.id === id);
-      if (item) {
-        setTitle(item.title || "");
-        setDescription(item.description || "");
-        setCategoryId(item.category_id || item.category?.id || null);
-        setImages(item.images || []);
-        setIsFeatured(item.is_featured || false);
-      }
-    } catch (err) {
-      console.error("Error loading portfolio item:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -123,12 +100,10 @@ export default function PortfolioItemScreen() {
         is_featured: isFeatured,
       };
 
-      if (isNew) {
-        await portfolioApi.createPortfolioItem(data);
-      } else {
-        await portfolioApi.updatePortfolioItem(id, data);
-      }
-      router.back();
+      await portfolioApi.createPortfolioItem(data);
+      Alert.alert("Succes", "Proiect adaugat cu succes", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
     } catch (err) {
       console.error("Error saving portfolio item:", err);
       Alert.alert("Eroare", "Nu am putut salva proiectul.");
@@ -137,25 +112,7 @@ export default function PortfolioItemScreen() {
     }
   };
 
-  const handleDelete = () => {
-    Alert.alert("Sterge proiect", "Esti sigur ca vrei sa stergi acest proiect?", [
-      { text: "Anuleaza", style: "cancel" },
-      {
-        text: "Sterge",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await portfolioApi.deletePortfolioItem(id);
-            router.back();
-          } catch (err) {
-            Alert.alert("Eroare", "Nu am putut sterge proiectul.");
-          }
-        },
-      },
-    ]);
-  };
-
-  if (!fontsLoaded || loading) {
+  if (!fontsLoaded) {
     return (
       <View
         style={{
@@ -233,14 +190,8 @@ export default function PortfolioItemScreen() {
             flex: 1,
           }}
         >
-          {isNew ? "Proiect nou" : "Editeaza proiect"}
+          Proiect Nou
         </Text>
-
-        {!isNew && (
-          <TouchableOpacity onPress={handleDelete} style={{ padding: 8 }}>
-            <Trash2 size={22} color="#EF4444" />
-          </TouchableOpacity>
-        )}
       </View>
 
       <ScrollView
@@ -481,7 +432,7 @@ export default function PortfolioItemScreen() {
                 color: "#FFFFFF",
               }}
             >
-              {isNew ? "Adauga proiect" : "Salveaza"}
+              Adauga proiect
             </Text>
           )}
         </TouchableOpacity>

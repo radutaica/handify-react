@@ -379,9 +379,18 @@ export default function BookingDetail() {
   };
 
   const handleMessage = () => {
+    const tasker = task.assigned_tasker;
     router.push({
-      pathname: "/messages",
-      params: { taskerId: task.assigned_tasker?.id },
+      pathname: `/chat/task-${task.id}`,
+      params: {
+        contextId: task.id,
+        contextType: "task",
+        receiverId: tasker?.id || "",
+        receiverName: tasker
+          ? `${tasker.first_name} ${tasker.last_name || ""}`.trim()
+          : "",
+        receiverImage: tasker?.profile_image_url || "",
+      },
     });
   };
 
@@ -692,7 +701,7 @@ export default function BookingDetail() {
                           marginLeft: 4,
                         }}
                       >
-                        {task.assigned_tasker.avg_rating.toFixed(1)}
+                        {parseFloat(task.assigned_tasker.avg_rating).toFixed(1)}
                       </Text>
                     </>
                   )}

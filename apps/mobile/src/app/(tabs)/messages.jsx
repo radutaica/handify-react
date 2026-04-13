@@ -154,6 +154,7 @@ export default function MessagesPage() {
         receiverId: otherUser.id,
         receiverName: `${otherUser.first_name} ${otherUser.last_name}`.trim(),
         receiverImage: otherUser.profile_image_url || "",
+        lastActiveAt: otherUser.last_active_at || "",
       },
     });
   };
@@ -402,6 +403,10 @@ export default function MessagesPage() {
         </View>
 
         <TouchableOpacity
+          onPress={() => {
+            // Toggle search - for now navigate to search
+            router.push("/(tabs)/search");
+          }}
           style={{
             backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
             borderRadius: 8,

@@ -16,7 +16,8 @@ export default function TabLayout() {
   const pathname = usePathname();
   const isProviderScreen = pathname?.includes("/provider/");
   const isPortfolioScreen = pathname?.includes("/portfolio");
-  const shouldHideTabBar = isProviderScreen || isPortfolioScreen;
+  const isServiceRequestScreen = pathname?.includes("/service-request");
+  const shouldHideTabBar = isProviderScreen || isPortfolioScreen || isServiceRequestScreen;
   
   return (
     <Tabs
